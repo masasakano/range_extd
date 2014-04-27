@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*- 
 
 = RangeExtd - Extended Range class with exclude_begin and open-ends
 
@@ -16,7 +15,7 @@ the logical completeness of the 1-dimensional range is realised.
 
 Then the validity of range is strictly defined now.
 Following that, this package adds a few methods, most notably
-<tt>Range#valid?</tt> and <tt>Range#empty?</tt>
+{Range#valid?} and {Range#empty?}
 to Range, and accordingly its any sub-classes,
 
 For example, <tt>(3...3).valid?</tt>  returns false, because the element 3 is
@@ -31,13 +30,13 @@ so it is completely compatible with the standard Ruby.
 
 To express open-ended ranges is simple; you just use either of
 the two (negative and positive, or former and later) constants
-defined in the class RangeExtd::Infinity
+defined in the class {RangeExtd::Infinity}
 * RangeExtd::Infinity::NEGATIVE
 * RangeExtd::Infinity::POSITIVE
 
 They are basically the object that generalised <tt>Float::INFINITY</tt> to
 any Comparable object.  For example,
-   <tt>("a"..RangeExtd::Infinity::POSITIVE).each</tt>
+   ("a"..RangeExtd::Infinity::POSITIVE).each
 gives an infinite iterator with <tt>String#succ</tt>, starting from "a"
 (therefore, make sure to code so it breaks the iterator at one stage!).
 
@@ -147,7 +146,7 @@ All the changes made in Range are backward-compatible with the original.
 
 === RangeExtd::Infinity Class
 
-Class <tt>RangeExtd::Infinity</tt> has basically only two constant instances.
+Class {RangeExtd::Infinity} has basically only two constant instances.
 
 * RangeExtd::Infinity::NEGATIVE
 * RangeExtd::Infinity::POSITIVE
@@ -157,7 +156,7 @@ They are the objects that generalise the concept of
 to any Comparable objects.  The methods <tt><=></tt> and <tt>succ</tt>  are defined.
 
 You can use them the same as other objects, such as,
-  <tt>("k"..RangeExtd::Infinity::POSITIVE)</tt>
+  ("k"..RangeExtd::Infinity::POSITIVE)
 However as they do not have any other methods,
 the use out of Range-type class is probably meaningless.
 
@@ -209,7 +208,7 @@ What is valid (<tt>#valid?</tt> => true) as a range is defined as follows.
 
 1. Both <tt>begin</tt> and <tt>end</tt> elements must be Comparable to each other,
    and the comparison results must be consistent between the two.
-   The sole exception is <tt>RangeExtd::NONE</tt>, which is valid.
+   The sole exception is {RangeExtd::NONE}, which is valid.
    For example, <tt>(nil..nil)</tt> is NOT valid (nb., it raised Exception in Ruby 1.8).
 2. begin must be smaller than or equal (<tt>==</tt>) to end,
    that is, <tt>(begin <=> end)</tt> must be either -1 or 0.
@@ -222,7 +221,7 @@ What is valid (<tt>#valid?</tt> => true) as a range is defined as follows.
    of false (namely, inclusive) for <tt>begin</tt>.
 
 For more detail and examples see the documents of
-<tt>RangeExtd.valid?</tt> and <tt>Range#valid?</tt> 
+{RangeExtd.valid?} and {Range#valid?} 
 
 The definition of what is empty (<tt>#empty?</tt> => true) as a range is as follows;
 
@@ -243,16 +242,16 @@ The built-in Range always has the begin-exclude status of
 has the status of <tt>empty?</tt> of <tt>true</tt>.
 
 For more detail and examples see the documents of
-<tt>Range#empty?</tt> 
+{Range#empty?} 
 
-Finally, <tt>Range#null?</tt> is equivalent to "either empty or not valid".
+Finally, {Range#null?} is equivalent to "either empty or not valid".
 Therefore, for RangeExtd objects <tt>null?</tt> is equivalent to
 <tt>empty?</tt>.
 
 In comparison (<tt><=></tt>) between a RangeExtd and another RangeExtd or Range
 object, those definitions are taken into account.
 Some of them are shown in the above Examples section.
-For more detail, see <tt>Range#==</tt> and <tt>RangeExtd#==</tt>, as
+For more detail, see {Range#==}> and {RangeExtd#==}>, as
 well as <tt>#eql?</tt>.
 
 Note that as long as the operation is within Range objects, the

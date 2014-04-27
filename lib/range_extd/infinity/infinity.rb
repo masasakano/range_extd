@@ -321,7 +321,7 @@ end	# class RangeExtd < Range
 class Object
   alias :compare_obj_before_infinity :==  if ! self.method_defined?(:compare_obj_before_infinity)	# No overwriting.
 
-  # Overwrite Object#<=>().  Then, all its sub-classes can be
+  # Overwrite #{Object#<=>}().  Then, all its sub-classes can be
   # aware of RangeExtd::Infinity objects (the two constants).
   #
   # In this definition of "<=>", if self is Comparable

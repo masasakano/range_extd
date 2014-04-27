@@ -143,8 +143,8 @@ class RangeExtd < Range
   end	# def initialize(*inar)
 
 
-  # true if self is identical to RangeExtd::NONE.
-  # @note This is different from #{==} method!
+  # true if self is identical to {RangeExtd::NONE}.
+  # This is different from {#==} method!
   #    RangeExtd(0,0,false,false) == RangeExtd::NONE  # => true
   #    RangeExtd(0,0,false,false).empty?    # => true
   #    RangeExtd(0,0,false,false).is_none?  # => false
@@ -153,8 +153,8 @@ class RangeExtd < Range
     self.begin.nil? && self.end.nil? && @exclude_begin && @exclude_end	# Direct comparison with object_id should be OK?
   end
 
-  # true if self is identical to RangeExtd::EVERYTHING (#{==} does not mean it at all!)
-  # @note (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_everything?  # => false
+  # true if self is identical to RangeExtd::EVERYTHING ({#==} does not mean it at all!)
+  #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_everything?  # => false
   def is_everything?
     self.begin.object_id == Infinity::NEGATIVE.object_id && self.end.object_id == Infinity::POSITIVE.object_id && !@exclude_begin && !@exclude_end	# Direct comparison with object_id should not work for this one!! (because users can create an identical one.)
   end
@@ -262,7 +262,7 @@ class RangeExtd < Range
   #   (?X..?z).each do |i| print i;end  # => "XYZ[\]^_`abcdefghijklmnopqrstuvwxyz"
   #   ?Z.succ  # => 'AA'
   #
-  #   @param obj [Object] If this Object is a member?
+  # @param obj [Object] If this Object is a member?
   def ===(obj)
     # ("a".."z")===("cc")	# => false
 
@@ -417,10 +417,10 @@ class RangeExtd < Range
   end
 
 
-  # @param [Numeric] Optional.  Must be non-negative.  Consult {Range#first} for detail.
-  # @note Like {Range#last}, if no argument is given, it behaves like {#begin()}, that is, it returns the initial value, regardless of {#exclude_begin?}.
-  #  However, if an argument is given (nb., acceptable since Ruby 1.9) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ().
+  # Like {Range#last}, if no argument is given, it behaves like {#begin()}, that is, it returns the initial value, regardless of {#exclude_begin?}.
+  # However, if an argument is given (nb., acceptable since Ruby 1.9) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ().
   # @raise [TypeError] if the argument (Numeric) is given and if {#exclude_begin?} is true, yet if {#begin}().succ is not defined, or yet if {#none}?
+  # @param [Numeric] Optional.  Must be non-negative.  Consult {Range#first} for detail.
   #
   def first(*rest)
     # (1...3.1).last	# => 3.1
@@ -460,7 +460,7 @@ class RangeExtd < Range
   end	# def first(*rest)
 
 
-  # @note When {#exclude_begin?} is true, the returned value is not strictly guaranteed to be unique, though in pracrtice it is most likely to be so.
+  # When {#exclude_begin?} is true, the returned value is not strictly guaranteed to be unique, though in pracrtice it is most likely to be so.
   # 
   def hash(*rest)
     if @exclude_begin
@@ -472,14 +472,14 @@ class RangeExtd < Range
 
 
   # Return eg., '("a"<..."c")', '("a"<.."c")', if {#exclude_begin?} is true,
-  #  or else, identical to those for {Range}.
+  # or else, identical to those for {Range}.
   # @return [String]
   def inspect
     re_inspect_core(__method__)
   end
 
   # Return eg., "(a<...c)", "(a<..c)", if {#exclude_begin?} is true,
-  #  or else, identical to those for {Range}.
+  # or else, identical to those for {Range}.
   # @return [String]
   def to_s
     re_inspect_core(__method__)
@@ -962,7 +962,7 @@ class Range
 
   # Returns true if self is valid as a comparable range.
   #
-  # See {RangeExtd.valid} for the definition of what is valid
+  # See {RangeExtd.valid?} for the definition of what is valid
   # and more examples.
   # 
   # === Examples
@@ -1017,7 +1017,7 @@ class Range
   #   RangeExtd::NONE.empty?          # => true
   #
   # @note to check whether it is either empty or invalid, use {#null?}.
-  #   See {#valid?} and {RangeExtd.valid}, too.
+  # See {#valid?} and {RangeExtd.valid}, too.
   def empty?
     # This is basically for the sake of sub-classes, as any built-in Range instance
     # always returns either nil or false.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*- 
 
 = RangeExtd - 拡張Rangeクラス - exclude_begin と無限大に開いた範囲と
 
@@ -17,7 +16,7 @@
 
 これにより、レンジの有効性を厳密に定義しています。それに従って、数個の
 メソッドを Range及び(自然に)そのサブクラスに追加しました。なかでも特徴的なのが、
-<tt>Range#valid?</tt> と <tt>Range#empty?</tt> です。
+{Range#valid?} と {Range#empty?} です。
 
 たとえば、<tt>(3...3).valid?</tt> は偽を返します。要素の 3 が、始点と
 しては含まれているのに対し、終点としては除外されていて、これは相互に矛
@@ -29,7 +28,7 @@
 しかしながら、組込Rangeの範囲内に収まっている限り、何も変わっていませ
 ん。つまり、標準の Rubyとの完全な後方互換性を実現しています。
 
-無限に開いたレンジを表すのは簡単です。単に RangeExtd::Infinityクラスで
+無限に開いたレンジを表すのは簡単です。単に {RangeExtd::Infinity}クラスで
 定義されている二つの定数(無限大または無現小、あるいは無限前と無限後)の
 いずれかを用います。
 * RangeExtd::Infinity::NEGATIVE
@@ -37,7 +36,7 @@
 
 これらは基本的に <tt>Float::INFINITY</tt> を全ての Comparableであるオ
 ブジェクトに一般化したものです。たとえば、
-   <tt>("a"..RangeExtd::Infinity::POSITIVE).each</tt>
+   ("a"..RangeExtd::Infinity::POSITIVE).each
 は、"a"から始まる <tt>String#succ</tt> を使った無限のイテレーターを与えます
 (だから、どこかで必ず breakするようにコードを書きましょう!)。
 
@@ -145,7 +144,7 @@
 
 === RangeExtd::Infinity クラス
 
-<tt>RangeExtd::Infinity</tt> クラスは、基本、定数二つのみを保持するものです。
+{RangeExtd::Infinity} クラスは、基本、定数二つのみを保持するものです。
 
 * RangeExtd::Infinity::NEGATIVE
 * RangeExtd::Infinity::POSITIVE
@@ -154,7 +153,7 @@
 たものです。メソッド <tt><=></tt> と <tt>succ</tt> が定義されています。
 
 これらは、他のオブジェクトと同様に普通に使用可能です。たとえば、
-  <tt>("k"..RangeExtd::Infinity::POSITIVE)</tt>
+  ("k"..RangeExtd::Infinity::POSITIVE)
 とはいえ、他には何もメソッドを持っていないため、 Range型のクラスの中以外での使用
 はおそらく意味がないでしょう。
 
@@ -202,7 +201,7 @@ Rangeクラスのみで定義されていて、 RangeExtd はそれを継承し�
 何がレンジとして有効 (<tt>#valid?</tt> => true) かの定義は以下です。
 
 1. 始点と終点とが互いに Comparable であり、かつその比較結果に矛盾がないこと。
-   この唯一の例外は <tt>RangeExtd::NONE</tt> で、これは valid です。
+   この唯一の例外は {RangeExtd::NONE} で、これは valid です。
    たとえば、<tt>(nil..nil)</tt> は valid では「ありません」(参考までに、この例は
    Ruby 1.8 では例外を生じていました)。
 2. 始点は終点と等しい(<tt>==</tt>)か小さくなければなりません。すなわし、
@@ -213,7 +212,7 @@ Rangeクラスのみで定義されていて、 RangeExtd はそれを継承し�
    その一例として、 <tt>(1...1)</tt> は、"valid" では「ありません」。なぜならば
    組込レンジでは、始点を常に含むからです。
 
-さらなる詳細は <tt>RangeExtd.valid?</tt> と <tt>Range#valid?</tt> のマニュアルを
+さらなる詳細は {RangeExtd.valid?} と {Range#valid?} のマニュアルを
 参照して下さい。
 
 何がレンジとして空(<tt>#empty?</tt> => true)かの定義は以下の通りです。
@@ -231,17 +230,17 @@ Rangeクラスのみで定義されていて、 RangeExtd はそれを継承し�
 す。そのため、組込Rangeのオブジェクトで、<tt>empty?</tt> が真(<tt>true</tt>)にな
 ることはありません。
 
-さらなる詳細は <tt>Range#empty?</tt> のマニュアルを
+さらなる詳細は {Range#empty?} のマニュアルを
 参照して下さい。
 
 
-最後、 <tt>Range#null?</tt> は、「<tt>empty?</tt> または "valid"でない」ことに等
+最後、 {Range#null?} は、「<tt>empty?</tt> または "valid"でない」ことに等
 価です。従って、 RangeExtd オブジェクトにとっては、<tt>null?</tt> は
 <tt>empty?</tt> に等価です。
 
 RangeExtd と別の RangeExtd または Rangeの比較 (<tt><=></tt>) においては、これら
 の定義が考慮されます。そのうちの幾つかは、上の「使用例」の項に示されています。
-さらなる詳細は <tt>Range#==</tt>、<tt>RangeExtd#==</tt> および
+さらなる詳細は {Range#==}、{RangeExtd#==} および
 <tt>#eql?</tt> のマニュアルを参照して下さい。
 
 なお、処理が Rangeオブジェクト内部で閉じている限り、その振舞いは標準 Rubyと同一
