@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   # s.email = %q{abc@example.com}
   s.extra_rdoc_files = [
     # "LICENSE",
-     "README.rdoc"
+     "README.en.rdoc",
      "README.ja.rdoc",
   ]
   s.license = 'MIT'
@@ -22,12 +22,12 @@ Gem::Specification.new do |s|
      #".gitignore",
      #"VERSION",
      "ChangeLog",
-     "README.rdoc",
+     "README.en.rdoc",
      "README.ja.rdoc",
      "Rakefile",
      "range_extd.gemspec",
      "lib/range_extd/range_extd.rb",
-     "lib/range_extd/infinity/infinity.rb"
+     "lib/range_extd/infinity/infinity.rb",
      "test/test_range_extd.rb",
   ]
   # s.add_runtime_dependency 'library', '~> 2.2', '>= 2.2.1'	# 2.2.1 <= Ver < 2.3.0
