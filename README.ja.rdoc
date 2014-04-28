@@ -1,4 +1,322 @@
 
+= RangeExtd - Extended Range class with exclude_begin and open-ends
+
+This package contains RangeExtd class, the Extended Range class that features:
+
+ 1. includes exclude_begin? (to exclude the "begin" boundary),
+ 2. allows open-ended range (to the infinity),
+ 3. defines NONE and EVERYTHING constants,
+ 4. the first self-consistent logical structure,
+ 5. complete backward-compatibility within the built-in Range.
+
+With the introduction of the excluded status of begin, in addition
+to the end as in built-in Range, and open-ended feature,
+the logical completeness of the 1-dimensional range is realised.
+
+Then the validity of range is strictly defined now.
+Following that, this package adds a few methods, most notably
+{Range#valid?} and {Range#empty?}
+to Range, and accordingly its any sub-classes,
+
+For example, <tt>(3...3).valid?</tt>  returns false, because the element 3 is
+inclusive for the begin boundary, yet exclusive for the end boundary,
+which are contradictory to each other.  With this RangeExtd class,
+it is expressed as a valid range,
+* RangeExtd.new(3, 3, true,  true)   # => an empty range
+* RangeExtd.new(3, 3, false, false)  # => a single-point range (3..3)
+
+However, as long as it is within built-in Range, nothing has changed,
+so it is completely compatible with the standard Ruby.
+
+To express open-ended ranges is simple; you just use either of
+the two (negative and positive, or former and later) constants
+defined in the class {RangeExtd::Infinity}
+* RangeExtd::Infinity::NEGATIVE
+* RangeExtd::Infinity::POSITIVE
+
+They are basically the object that generalised <tt>Float::INFINITY</tt> to
+any Comparable object.  For example,
+   ("a"..RangeExtd::Infinity::POSITIVE).each
+gives an infinite iterator with <tt>String#succ</tt>, starting from "a"
+(therefore, make sure to code so it breaks the iterator at one stage!).
+
+
+The built-in Range class is very useful, and has given Ruby users
+a power to make easy coding.  Yet, the lack of definition of
+exclusive begin boundary is a nuisance in some cases.
+
+Having said that, there is a definite and understandable reason;
+Range in Ruby is not limited at all to Numeric (or strictly speaking,
+Real number or its representative).  Range with any object that has a method
+of <tt>succ()</tt> is found to be useful, whereas there is no reverse method for
+<tt>succ()</tt> in general.
+In that sense Range is inherently not symmetric.  In addition
+some regular Range objects are continuous (like Float), while others are discrete
+(like Integer or String).  That may add some confusion to the strict definition.
+
+To add the feature of the exclusive begin boundary is in that sense
+not 100 per cent trivial.  The definition I adopt for the behaviour of
+RangeExtd is probably not the only solution.  Personally, I am content
+with it, and I think it achieves the good logical completeness within the frame.
+
+I hope you find it to be useful.
+
+
+== Install
+
+  gem install range_extd
+
+Two files
+  range_extd/range_extd.rb
+  range_extd/infinity/infinity.rb
+should be installed in one of your <tt>$LOAD_PATH</tt> 
+
+Alternatively get it from
+  http://rubygems.org/gems/range_extd
+
+Then all you need to do is
+  require 'range_extd/range_extd'
+or, possibly as follows, if you manually install it
+  require 'range_extd'
+in your Ruby script (or irb).  The other file
+  range_extd/infinity/infinity.rb
+is called (required) from it automatically.
+
+Have fun!
+
+
+== Simple Examples
+
+=== How to create a RangeExtd instance
+
+Here are some simple examples.
+
+   r = RangeExtd(?a...?d, true)  # => a<...d
+   r.exclude_begin?              # => true 
+   r.to_a                        # => ["b", "c"]
+   RangeExtd(1...2)            == (1...2)          # => true
+   RangeExtd(1, 2, false, true)== (1...2)          # => true
+   RangeExtd(1, 1, false, false)==(1..1)           # => true
+   RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
+   RangeExtd(1, 1, false, true)  # => ArgumentError
+   (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
+    == RangeExtd::EVERYTHING  # => true
+
+Basically, there are two forms:
+
+   RangeExtd(range, [exclude_begin=false, [exclude_end=false]])
+   RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
+
+The last two parameters specify the respective boundary to be excluded if true,
+or included if false (Default).  If they contradict to the first
+parameter of the range (Range or RangeExtd), those latter two parameters are used.
+<tt>RangeExtd.new()</tt> is the same thing.
+
+=== Slightly more advanced uses
+
+   (1..RangeExtd::Infinity::POSITIVE).each do |i|
+     print i
+     break if i >= 9
+   end    # => self ( "123456789" => STDOUT )
+   (nil..nil).valid?  # => false
+   (1...1).valid?     # => false
+   (1...1).null?      # => true
+   RangeExtd.valid?(1...1)              # => false
+   RangeExtd(1, 1, true, true).valid?   # => true
+   RangeExtd(1, 1, true, true).empty?   # => true
+   RangeExtd(?a, ?b, true, true).to_a?  # => []
+   RangeExtd(?a, ?b, true, true).empty? # => true
+   RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
+   RangeExtd(?a, ?e, true, true).empty? # => false
+   RangeExtd::NONE.is_none?             # => true
+   RangeExtd::EVERYTHING.is_everything? # => true
+
+All the methods that are in the built-in Range can be used.
+
+
+== Description
+
+Once the file range_extd.rb is required, the two classes are defined:
+
+* RangeExtd
+* RangeExtd::Infinity
+
+Also, several methods are added or altered in Range class.
+All the changes made in Range are backward-compatible with the original.
+
+=== RangeExtd::Infinity Class
+
+Class {RangeExtd::Infinity} has basically only two constant instances.
+
+* RangeExtd::Infinity::NEGATIVE
+* RangeExtd::Infinity::POSITIVE
+
+They are the objects that generalise the concept of
+<tt>Float::INFINITY</tt> 
+to any Comparable objects.  The methods <tt><=></tt> and <tt>succ</tt>  are defined.
+
+You can use them the same as other objects, such as,
+  ("k"..RangeExtd::Infinity::POSITIVE)
+However as they do not have any other methods,
+the use out of Range-type class is probably meaningless.
+
+Note for any Numeric object, please use <tt>Float::INFINITY</tt> instead in principle.
+
+Any objects in any user-defined Comparable class are commutatively comparable with
+those two constants, as long as the cmp method of the class is written
+politely.
+
+For more detail, see its documents (YARD or RDoc-style
+documents embedded in the code, or see RubyGems webpage).
+
+
+=== RangeExtd Class
+
+RangeExtd objects are immutable, the same as Range.
+Hence once an instance is created, it would not change.
+
+How to create an instance is explained above (in the Examples
+sections).  Any attempt to try to create an instance that is not
+"valid" as a range (see below) raises an exception (<tt>ArgumentError</tt>), and fails.
+
+There are two constants defined in this class:
+
+* RangeExtd::NONE
+* RangeExtd::EVERYTHING
+
+The former represents the empty range and the latter does the range
+covers everything, namely open-ended for the both negative and
+positive directions.
+
+In addition to all the standard methods of Range, the following
+methods are added to both RangeExtd and Range classes.
+See the document of each method for detail (some are defined only in
+Range class, as RangeExtd inherits it).
+
+* <tt>exclude_begin?</tt> 
+* <tt>valid?</tt> 
+* <tt>empty?</tt> 
+* <tt>null?</tt> 
+* <tt>is_none?</tt> 
+* <tt>is_everything?</tt> 
+
+There is a class method, which is equivalent to the instance
+method <tt>valid?</tt>.
+* <tt>RangeExtd.valid?</tt> 
+
+What is valid (<tt>#valid?</tt> => true) as a range is defined as follows.
+
+1. Both <tt>begin</tt> and <tt>end</tt> elements must be Comparable to each other,
+   and the comparison results must be consistent between the two.
+   The sole exception is {RangeExtd::NONE}, which is valid.
+   For example, <tt>(nil..nil)</tt> is NOT valid (nb., it raised Exception in Ruby 1.8).
+2. begin must be smaller than or equal (<tt>==</tt>) to end,
+   that is, <tt>(begin <=> end)</tt> must be either -1 or 0.
+3. If begin is equal to end, namely, <tt>(begin <=> end) == 0</tt>,
+   the exclude status of the both ends must agree.
+   That is, if the <tt>begin</tt> is excluded, <tt>end</tt> must be also excluded,
+   and vice versa.
+   For example, <tt>(1...1)</tt> is NOT valid for that reason,
+   because any built-in Range object has the exclude status
+   of false (namely, inclusive) for <tt>begin</tt>.
+
+For more detail and examples see the documents of
+{RangeExtd.valid?} and {Range#valid?} 
+
+The definition of what is empty (<tt>#empty?</tt> => true) as a range is as follows;
+
+1. the range must be valid: <tt>valid?</tt> => true
+2. if the range id discrete, that is, begin has
+   <tt>succ</tt> method, there must be no member within the range
+   (which means the begin must be excluded, too): 
+   <tt>to_a.empty?</tt> => true
+3. if the range is continuous, that is, begin does not have
+   <tt>succ</tt> method, begin and end must be equal
+   (<tt>(begin <=> end)</tt> => 0) and both the boundaries must
+   be excluded: <tt>(exclude_begin? && exclude_end?)</tt> => true.
+
+Note that ranges with equal <tt>begin</tt> and <tt>end</tt> with inconsistent two
+exclude status are not valid, as mentioned in the previous paragraph.
+The built-in Range always has the begin-exclude status of
+<tt>false</tt>.  For that reason, no instance of built-in Range 
+has the status of <tt>empty?</tt> of <tt>true</tt>.
+
+For more detail and examples see the documents of
+{Range#empty?} 
+
+Finally, {Range#null?} is equivalent to "either empty or not valid".
+Therefore, for RangeExtd objects <tt>null?</tt> is equivalent to
+<tt>empty?</tt>.
+
+In comparison (<tt><=></tt>) between a RangeExtd and another RangeExtd or Range
+object, those definitions are taken into account.
+Some of them are shown in the above Examples section.
+For more detail, see {Range#==}> and {RangeExtd#==}>, as
+well as <tt>#eql?</tt>.
+
+Note that as long as the operation is within Range objects, the
+behaviour is identical to the standard Ruby -- it is completely
+compatible.  Therefore, requiring this library would not affect any
+existing code in principle.
+
+
+== Known bugs
+
+* <tt>hash()</tt> method does not always guarantee to return a unique
+  and exclusive number for the equal RangeExtd object, though such an
+  exception is extremely unlikely to happen in reality.
+
+Note this library does not work in Ruby 1.8 or earlier.
+For Ruby 1.9.3 it is probably all right, however I have never tested
+it.
+
+Extensive tests have been performed, as included in the package.
+
+
+== ToDo
+
+Nothing planned.
+
+
+== Final notes
+
+All the behaviours within RangeExtd (not Range), such as
+any comparison between two RangeExtd, should be (or hopefully?)
+natural for you.  At least it is well-defined and self-consistent, as
+the logical structure of the ranges is now complete with RangeExtd.
+Note some behaviours for open-ended or begin-excluded ranges may
+give you a little shock at first.  For example, the method
+<tt>member?(obj)</tt> for an open-ended range for the negative direction with
+discrete elements returns <tt>nil</tt>.  That is because no meaningful method
+of <tt>succ()</tt> is defined for the (negative) infinity, hence it is
+theoretically impossible in general to check whether the given obj is a member of
+the range or not.  You may find it to be weird, but that just means
+the concept of the infinity is unfamiliar to us mortals!
+
+On the other hand, the comparison between RangeExtd and Range may have
+more occasional surprises.  That is because some of the accepted
+ranges by built-in Range class are no longer valid in this framework with the
+inclusion of exclude-status of the begin boundary, as explained.
+Hopefully you will feel it to be natural as you get accustomed to it.
+And I bet once you have got accustomed to it, you will never want to
+go back to the messy world of logical incompleteness, that is, the
+current behaviour of Range!
+
+Enjoy.
+
+
+
+== Miscellaneous
+
+== Copyright etc
+
+Author::  Masa Sakano < imagine a_t sakano dot co dot uk >
+License:: MIT.
+Warranty:: No warranty whatsoever.
+Versions:: The versions of this package follow Semantic Versioning (2.0.0) http://semver.org/
+
+
+
 = RangeExtd - 拡張Rangeクラス - exclude_begin と無限大に開いた範囲と
 
 このパッケージは、Range を拡張した RangeExtd クラスを定義しています。

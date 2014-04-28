@@ -71,10 +71,7 @@ end
 # the two (negative and positive, or former and later) constants
 # in RangeExtd::Infinity class.  See the document for detail.
 #
-# ==Examples
-#
-# An instance of a range of 5 to 8 with both ends being exclusive is created as
-#
+# @example An instance of a range of 5 to 8 with both ends being exclusive is created as
 #   r = RangeExtd(5...8, true) 
 #   r.exclude_begin?  # => true 
 #
@@ -145,6 +142,7 @@ class RangeExtd < Range
 
   # true if self is identical to {RangeExtd::NONE}.
   # This is different from {#==} method!
+  # @example 
   #    RangeExtd(0,0,false,false) == RangeExtd::NONE  # => true
   #    RangeExtd(0,0,false,false).empty?    # => true
   #    RangeExtd(0,0,false,false).is_none?  # => false
@@ -153,7 +151,8 @@ class RangeExtd < Range
     self.begin.nil? && self.end.nil? && @exclude_begin && @exclude_end	# Direct comparison with object_id should be OK?
   end
 
-  # true if self is identical to RangeExtd::EVERYTHING ({#==} does not mean it at all!)
+  # true if self is identical to {RangeExtd::EVERYTHING} ({#==} does not mean it at all!)
+  # @example
   #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_everything?  # => false
   def is_everything?
     self.begin.object_id == Infinity::NEGATIVE.object_id && self.end.object_id == Infinity::POSITIVE.object_id && !@exclude_begin && !@exclude_end	# Direct comparison with object_id should not work for this one!! (because users can create an identical one.)
@@ -179,7 +178,11 @@ class RangeExtd < Range
   # this returns true, regardless of their boundary values.
   # And any empty range is equal to RangeExtd::Infinity::NONE.
   # 
-  # For example,
+  # Note the last example will return false for {#eql?} -- see {#eql?}
+  # 
+  # See {#eql?}
+  # 
+  # @example
   #   (1<...1)   == RangeExtd::NONE # => true
   #   (?a<...?b) == RangeExtd::NONE # => true
   #   (1<...1) == (2<...2)     # => true
@@ -188,9 +191,6 @@ class RangeExtd < Range
   #   (1<...1) != (?c<...?c)   # - because of Fixnum and String
   #   (1.0<...1.0) == (3<...4) # => true
   # 
-  # Note the last example will return false for {#eql?} -- see {#eql?}
-  # 
-  # See {#eql?}
   # @return [Boolean]
   def ==(r)
     re_equal_core(r, :==)
@@ -201,6 +201,7 @@ class RangeExtd < Range
   # the immediate class has to agree to return true.
   # Only the exception is the comparison with RangeExtd::Infinity::NONE.
   # Therefore, 
+  # @example
   #   (1...5) ==  (1.0...5.0)  # => true
   #   (1...5).eql?(1.0...5.0)  # => false
   #   (1<...1).eql?(  RangeExtd::NONE)  # => true
@@ -221,15 +222,15 @@ class RangeExtd < Range
   # In the standard Range, this checks whether the given object is a member, hence,
   #    (?D..?z) === ?c    # => true
   #    (?a..?z) === "cc"  # => false
-  # In the case of the former, after finite trials of succ() from ?c, it reaches the end (?z).
-  # In the latter, after finit trials of succ() from the begin ?a, it reaches the end (?z).
+  # In the case of the former, after finite trials of [#succ] from ?c, it reaches the end (?z).
+  # In the latter, after finit trials of [#succ] from the begin ?a, it reaches the end (?z).
   # Therefore it is theoretically possible to prove it (n.b., the actual
   # algorithm of built-in {Range#include?} is different and cheating!
   # See below.).
   #
   # However, in the case of
   #    (?D..Infinity) === ?c
-  # it can never prove ?c is a member after infinite trials of succ(),
+  # it can never prove ?c is a member after infinite trials of [#succ],
   # whether it starts the trials from the begin (?D) or the object (?c).
   #
   # For anything but Numeric, use {#cover?} instead.
@@ -238,7 +239,7 @@ class RangeExtd < Range
   #    (?B..?z) === 'dd'  # => false
   # as Ruby's {Range} knows the algorithm of {String#succ} and {String#<=>}
   # and specifically checks with it, before using {Enumerable#include?}.
-  # @see https://github.com/ruby/ruby/blob/trunk/range.c
+  # {https://github.com/ruby/ruby/blob/trunk/range.c}
   #
   # Therefore, even if you change the definition of {String#succ}
   # so that 'B'.succ => 'dd', 'dd'.succ => 'z', as follows,
@@ -262,7 +263,8 @@ class RangeExtd < Range
   #   (?X..?z).each do |i| print i;end  # => "XYZ[\]^_`abcdefghijklmnopqrstuvwxyz"
   #   ?Z.succ  # => 'AA'
   #
-  # @param obj [Object] If this Object is a member?
+  # @param [Object] obj If this Object is a member?
+  # @return [Boolean]
   def ===(obj)
     # ("a".."z")===("cc")	# => false
 
@@ -337,7 +339,7 @@ class RangeExtd < Range
   # If Integer, the search is conducted on the descrete Integer points only,
   # and no search will be made in between the adjascent integers.
   #
-  # Given that, RangeExtd#bsearch follows basically the same, even when exclude_begin? is true.
+  # Given that, {RangeExtd#bsearch} follows basically the same, even when exclude_begin? is true.
   # If either end is Float, it searches between begin*(1+Float::EPSILON) and end.
   # If both are Integer, it searches from begin+1.
   # When {#exclude_begin?} is false, {RangeExtd#bsearch} is identical to {Range#bsearch}.
@@ -420,8 +422,9 @@ class RangeExtd < Range
   # Like {Range#last}, if no argument is given, it behaves like {#begin()}, that is, it returns the initial value, regardless of {#exclude_begin?}.
   # However, if an argument is given (nb., acceptable since Ruby 1.9) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ().
   # @raise [TypeError] if the argument (Numeric) is given and if {#exclude_begin?} is true, yet if {#begin}().succ is not defined, or yet if {#none}?
-  # @param [Numeric] Optional.  Must be non-negative.  Consult {Range#first} for detail.
-  #
+  # @param [Integer] Optional.  Must be non-negative.  Consult {Range#first} for detail.
+  # @return [Object] if no argument is given, equivalent to {#end}.
+  # @return [Array] if an argument is given.
   def first(*rest)
     # (1...3.1).last	# => 3.1
     # (1...3.1).last(1)	# => [3]
@@ -491,7 +494,8 @@ class RangeExtd < Range
   # an argument in practice, the number of the members of the returned array.
   #
   # @raise [TypeError] If self.begin.succ is not defined, or if either side is Infinity.
-  # @return [Object] if no argument is given, equivalent to {#end}.  Otherwise Array.
+  # @return [Object] if no argument is given, equivalent to {#end}.
+  # @return [Array] if an argument is given.
   def last(*rest)
     return nil if null?
     nSize = rest.size
@@ -568,7 +572,8 @@ class RangeExtd < Range
   # See {#first} for the definition when {#exclude_begin?} is true.
   # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how {Range#size} behaves (in Japanese).
   #
-  # @return [Integer] or nil if the range is non-Numeric.  0 if RangeExtd::NONE.
+  # @return [Integer]  0 if {RangeExtd::NONE}
+  # @return [nil] if the range is non-Numeric.
   def size(*rest)
     # (1..5).size	# => 5
     # (1...5).size	# => 4
@@ -744,7 +749,9 @@ class RangeExtd < Range
   #    because any built-in Range object has the exclude status
   #    of false (namely, inclusive) for {#begin}.
   #
-  # === Examples
+  # Note the last example may change in the future release.
+  #
+  # @example
   #
   #    RangeExtd.valid?(nil..nil)     # => false
   #    RangeExtd.valid?(nil...nil)    # => false
@@ -759,8 +766,6 @@ class RangeExtd < Range
   #    RangeExtd.valid?(3..Float::INFINITY, true)  # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d)        # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d, true)  # => true
-  #
-  # Note the last example may change in the future release.
   #
   # @overload new(range, [exclude_begin=false, [exclude_end=false]])
   #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
@@ -821,8 +826,7 @@ class RangeExtd < Range
   private
 
   # Core routine for {#inspect} and {#to_s}
-  # @param r [Object] to compare.
-  # @param method [Symbol] of the method name.
+  # @param [Symbol] method the method name.
   def re_inspect_core(method)
     if @exclude_end
       midStr = "..."
@@ -840,8 +844,8 @@ class RangeExtd < Range
 
 
   # Core routine for {#===} and {#eql?}
-  # @param r [Object] to compare.
-  # @param method [Symbol] of the method name.
+  # @param [Object] r to compare.
+  # @param [Symbol] method of the method name.
   def re_equal_core(r, method)
     if defined? r.empty?
       is_r_empty = r.empty?
@@ -964,9 +968,10 @@ class Range
   #
   # See {RangeExtd.valid?} for the definition of what is valid
   # and more examples.
+  #
+  # See {#empty?} and {#null?}, too.
   # 
-  # === Examples
-  # 
+  # @example
   #    (nil..nil).valid? # => false
   #    (0..0).valid?     # => true
   #    (0...0).valid?    # => false
@@ -975,8 +980,6 @@ class Range
   #    (3..Float::INFINITY).valid?   # => true
   #    RangeExtd::NONE.valid?        # => true
   #    RangeExtd::EVERYTHING.valid?  # => true
-  #
-  # See {#empty?} and {#null?}, too.
   # 
   # @note By definition, all the {RangeExtd} instances are valid,
   #  because {RangeExtd#new} checks the validity.
@@ -1005,8 +1008,7 @@ class Range
   #
   # In these conditions, none of Range instance would return true in {#empty}.
   #
-  # === Examples
-  #
+  # @example
   #   (nil..nil).empty?  # => nil
   #   (1...1).empty?     # => nil
   #   (1..1).empty?      # => false
@@ -1018,6 +1020,8 @@ class Range
   #
   # @note to check whether it is either empty or invalid, use {#null?}.
   # See {#valid?} and {RangeExtd.valid}, too.
+  #
+  # @return [Boolean, nil]
   def empty?
     # This is basically for the sake of sub-classes, as any built-in Range instance
     # always returns either nil or false.

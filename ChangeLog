@@ -1,6 +1,12 @@
 -----
+(Version: 0.1.1)
+2014-04-28  Masa Saskano
+ * Merging Japanese README into the same file as the English one.
+
+-----
 (Version: 0.1.0)
-2014-04-27  Masa Saskano
+2014-04-27  Masa Sakano
+
  * Fix range_extd.gemspec
 
 -----

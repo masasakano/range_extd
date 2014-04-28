@@ -31,17 +31,17 @@ class RangeExtd < Range
   # respectively, than any other Comparable objects (1 or -1 by i{#<=>}(obj))
   # except for infinities with the same polarity, that is, positive or negative,
   # in which case 0 is returned.
-  # See the document of the method #{==} for the definition of "infinity".
+  # See the document of the method {#==} for the definition of "infinity".
   # Also, {#succ} is defined, which just returns self.
   #
   # There is a note of caution.
   # The method {#<=>} is defined in this class as mentioned above.
-  #  However any operator is, by Ruby's definition, not commutative,
+  # However any operator is, by Ruby's definition, not commutative,
   # unless both the classes define so.
   #
   # There are only two built-in classes that are Comparable: String and Numeric
   # (except for Complex).
-  # For String class objects, the #{<=>} operator work as expected
+  # For String class objects, the [#<=>] operator work as expected
   # in the commutative way.
   #    ?z <=> RangeExtd::Infinity::POSITIVE    # => nil
   #    RangeExtd::Infinity::POSITIVE <=> ?z    # => 1.
@@ -66,7 +66,7 @@ class RangeExtd < Range
   # whether you or authors of libraries.
   # The comparison with {RangeExtd::Infinity} instances are
   # implemented in {Object#<=>} in this library.  Hence, as long as
-  # the method <=> in the classes is written sensibly, that is, if it
+  # the method [#<=>] in the classes is written sensibly, that is, if it
   # respects the method of the super-class when it does not know
   # how to deal with an unknown object, there is no need for
   # modification.  Any object in your class (say, YourComparable) 
@@ -84,11 +84,11 @@ class RangeExtd < Range
   # For that sort of circumstances,
   # the class method {RangeExtd::Infinity.overwrite_compare} provides
   # a convenient way to overcome this problem to make
-  # the operator <=> commutative for a given Comparable class.
+  # the operator [#<=>] commutative for a given Comparable class.
   #
   # Note {RangeExtd::Infinity.overwrite_compare} does nothing for the classes
   # registered in the Class constant Array {RangeExtd::Infinity::CLASSES_ACCEPTABLE}.
-  # So, if you want to avoid such modification of the method <=>, perhaps
+  # So, if you want to avoid such modification of the method [#<=>], perhaps
   # by some other end users, you can register the class in that array.
   #
   # Only the methods defined in this class are
@@ -129,7 +129,7 @@ class RangeExtd < Range
 
     # Always -1 or 1 except for itself and the corresponding infinities (== 0).  See {#==}.
     # Or, nil (as defined by Object), if the argument is not Comparable, such as, nil and IO.
-    # @return [Integer] or possibly nil.
+    # @return [Integer, nil]
     def <=>(c)
       if c.nil?
         super
@@ -189,7 +189,7 @@ class RangeExtd < Range
     alias :to_s :inspect
   
 
-  # Overwrite "<=>" method of the given class, if necessary,
+  # Overwrite [#<=>] method of the given class, if necessary,
   # to make its instances be comparable with RangeExtd::Infinity objects (constants).
   # For example,
   #   RangeExtd::Infinity::NEGATIVE.<=>(any_comparable)
@@ -199,7 +199,7 @@ class RangeExtd < Range
   # Therefore, this function (Class method) provides a convenient
   # way to overcome it, that is, if the given class
   # (or the class of the given object) is Comparable,
-  # its "<=>" method is modified (and true is returned),
+  # its [#<=>] method is modified (and true is returned),
   # unless it has been already done so, or some classes as listed below,
   # such as Numeric and String, in which case nil is returned.
   # If it is not Comparable, false is returned.
@@ -214,7 +214,7 @@ class RangeExtd < Range
   # the class in the array.
   #
   # @param obj [Object] Either Class or its object.
-  # @return [Boolean] or possibly nil (see the description).
+  # @return [Boolean, nil] (see the description).
   def self.overwrite_compare(obj)
     if defined? obj.instance_methods
       klass = obj
@@ -315,21 +315,21 @@ end	# class RangeExtd < Range
 #
 # = class Object
 #
-# Overwrite Object#<=>() so all its sub-classes can be
-# aware of RangeExtd::Infinity objects (the two constants).
+# Overwrite {Object#<=>}() so all its sub-classes can be
+# aware of {RangeExtd::Infinity} objects (the two constants).
 #
 class Object
   alias :compare_obj_before_infinity :==  if ! self.method_defined?(:compare_obj_before_infinity)	# No overwriting.
 
-  # Overwrite #{Object#<=>}().  Then, all its sub-classes can be
+  # Overwrite {Object#<=>}().  Then, all its sub-classes can be
   # aware of RangeExtd::Infinity objects (the two constants).
   #
-  # In this definition of "<=>", if self is Comparable
-  # (by judging whether it has the method "<="),
+  # In this definition of {#<=>}, if self is Comparable
+  # (by judging whether it has the method [#<=]),
   # it always returns, unless infinity? and positive? are set
   # accordingly, either -1 or 1, depending which of
   #   RangeExtd::Infinity::(NEGATIVE|POSITIVE)
-  # is compared.  If self is not Comparable, the original "<=>"
+  # is compared.  If self is not Comparable, the original [#<=>]
   # is called, which should return nil (unless both the object_id
   # agree, eg., nil and nil, in which case 0 is returned).
   #
@@ -337,6 +337,7 @@ class Object
   # define the method "<=>" as follows, as in the standard practice
   # when you redefine a method that exists in a superclass;
   #
+  # @example A method definition of user-defined Comparable class
   #    class MyComparableClass 
   #      include Comparable
   #      # alias :cmp_orig :<=> if !self.method_defined?(:cmp_orig)	# if you want
