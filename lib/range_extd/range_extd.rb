@@ -39,11 +39,11 @@ class RangeExtd < Range
   end
 
   # Two constants
-  NONE        = RangeExtd.new(nil...nil, true, true)	# In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
-  EVERYTHING  = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false)
+  NONE = RangeExtd.new(nil...nil, true, true)	# In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
+  ALL  = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false)
 
   #NONE.freeze
-  #EVERYTHING.freeze
+  #ALL.freeze
 end
 
 
@@ -57,7 +57,7 @@ end
 # Extended Range class that features:
 #  1. includes exclude_begin? (to exclude the "begin" boundary),
 #  2. allows open-ended range (to the infinity),
-#  3. defines NONE and EVERYTHING constants,
+#  3. defines NONE and ALL constants,
 #  4. the first self-consistent logical structure,
 #  5. complete backward compatibility within the built-in Range.
 #
@@ -77,28 +77,34 @@ end
 #
 class RangeExtd < Range
 
-  # @note If the given optional parameter(s) of exclude_begin|end
-  #  do not agree with those in the first parameter (range),
-  #  the value(s) of the optional parameter(s) is used.
+  # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
+  #  If there is any duplication, those specified in the optional hash have the highest
+  #  priority.  Then the two descrete Boolean parameters have the second.
+  #  If not, the values embeded in the {Range} or {RangeExtd} object
+  #  in the parameter are used.  In default, both of them are false.
   #
-  # @overload new(range, [exclude_begin=false, [exclude_end=false, [opts]]])
+  # @overload new(range, [exclude_begin=false, [exclude_end=false]], opts)
   #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
-  #   @param exclude_begin [Object] true or false(Default) or any
-  #   @param exclude_end [Object] true or false(Default) or any.
+  #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
+  #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
+  #   @option opts [Boolean] :exclude_begin If specified, this has the highest priority, or false in default.
+  #   @option opts [Boolean] :exclude_end If specified, this has the highest priority, or false in default.
   #
-  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false, [opts]]])
+  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
   #   @param obj_begin [Object] Any object that is {Comparable} with end
   #   @param obj_end [Object] Any object that is Comparable with begin
-  #   @param exclude_begin [Object] true or false(Default) or any
-  #   @param exclude_end [Object] true or false(Default) or any.
+  #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
+  #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
+  #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
+  #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
   # Note no possible opts are defined at present.
   # Any opts given as Hash are simply ignored.
   #
   # @raise [ArgumentError] particularly if the range to be created is not {#valid?}.
-  def initialize(*inar)
+  def initialize(*inar, **hsopt)	# **k expression from Ruby 1.9?
 
-    arout = RangeExtd.class_eval{ _get_init_args(*inar) }	# From Ruby 1.8.7 (?)
+    arout = RangeExtd.class_eval{ _get_init_args(*inar, hsopt) }	# class_eval from Ruby 1.8.7 (?)
 
     ### The following routine is obsolete.
     ### Users, if they wish, should call RangeExtd::Infinity.overwrite_compare() beforehand.
@@ -151,10 +157,10 @@ class RangeExtd < Range
     self.begin.nil? && self.end.nil? && @exclude_begin && @exclude_end	# Direct comparison with object_id should be OK?
   end
 
-  # true if self is identical to {RangeExtd::EVERYTHING} ({#==} does not mean it at all!)
+  # true if self is identical to {RangeExtd::ALL} ({#==} does not mean it at all!)
   # @example
-  #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_everything?  # => false
-  def is_everything?
+  #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?  # => false
+  def is_all?
     self.begin.object_id == Infinity::NEGATIVE.object_id && self.end.object_id == Infinity::POSITIVE.object_id && !@exclude_begin && !@exclude_end	# Direct comparison with object_id should not work for this one!! (because users can create an identical one.)
   end
 
@@ -217,7 +223,7 @@ class RangeExtd < Range
   # If the object is open-ended to the negative (Infinity),
   # this returns nil in default, unless the given object is Numeric
   # (and comparable of Real), in which case this calls {#cover?},
-  # or if self is {RangeExtd::EVERYTHING} and the object is Comparable.
+  # or if self is {RangeExtd::ALL} and the object is Comparable.
   #
   # In the standard Range, this checks whether the given object is a member, hence,
   #    (?D..?z) === ?c    # => true
@@ -568,11 +574,59 @@ class RangeExtd < Range
   end
 
 
-
+  # Implementation of {Range#size} to this class.
+  #
+  # It is essentially the same, but the behaviour when {#exclude_begin?} is true
+  # may not always be natural.
   # See {#first} for the definition when {#exclude_begin?} is true.
+  #
+  # {Range#size} only works for Numeric ranges.
+  # And in {Range#size}, the value is calculated when the initial value is
+  # non-Integer, by stepping by 1.0 from the {#begin} value, and the returned
+  # value is an integer.
+  # For example,
+  #    (1.4..2.6).size == 2
+  # because both 1.4 and 2.4 (== 1.4+1.0) are included in the Range.
+  #
+  # That means you had better be careful with the uncertainty (error)
+  # of floating-point.  For example, at least in an environment,
+  #     4.8 - 4.5   # => 0.2999999999999998
+  #     (2.5...4.5000000000000021).size  => 2
+  #     (2.8...4.8000000000000021).size  => 3
+  #     (2.8..4.8).size  => 3
+  #
+  # In {RangeExtd#size}, the principle is the same.  If the {#begin} value has
+  # the method [#succ] defined, the object is regarded to consist of
+  # discrete values.  If not, it is a range with continuous elements.
+  # This dinstinguishment affects the behavious seriously in some cases
+  # when {#exclude_begin?} is true.  For example, the following two cases
+  # may seem unnatural.
+  #    RangeExtd(1..5, true, true)      == RangeExtd(Rational(1,1), 5, true, true)
+  #    RangeExtd(1..5, true, true).size != RangeExtd(Rational(1,1), 5, true, true).size
+  #
+  # Although those two objects are equal by [#==], they are different
+  # in nature, as far as {Range} and {RangeExtd} are concerned,
+  # and that is why they work differently;
+  #    RangeExtd(1..5, true, true).eql?(RangeExtd(Rational(1,1), 5, true, true))  # => false
+  #    RangeExtd(1..5, true, true).to_a      # => [2, 3, 4]
+  #    RangeExtd(1..5, true, true).to_a.size # => 3
+  #    RangeExtd(Rational(1,1)..5).to_a   # => TypeError
+  #
+  # Also, the floating-point uncertainties in Float can more often be
+  # problematic; for example, in an environment,
+  #    4.4 - 2.4   # => 2.0000000000000004
+  #    4.8 - 2.8   # => 2.0
+  #    RangeExtd(2.4..4.4, true, true).size  # => 3
+  #    RangeExtd(2.8..4.8, true, true).size  # => 2
+  # The last example is what you would naively expect, because both
+  #    2.8+a(lim a->0)  and  3.8+a(lim a->0) are
+  # in the range whereas 4.8 is not in the range by definition,
+  # but not the example right above.
+  #
   # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how {Range#size} behaves (in Japanese).
   #
   # @return [Integer]  0 if {RangeExtd::NONE}
+  # @return [Float]  Float::INFINITY if either (or both) the end is infinity, regardless of the class of the elements. 
   # @return [nil] if the range is non-Numeric.
   def size(*rest)
     # (1..5).size	# => 5
@@ -607,9 +661,20 @@ class RangeExtd < Range
     elsif @exclude_begin
 
       begin
-        1.0 + self.begin()
+        _dummy = 1.0 + self.begin()	# _dummy to suppress warning: possibly useless use of + in void context
+
         # Numeric
-        Range.new(self.begin()+1, self.end, exclude_end?).send(__method__, *rest)	# Swap the order of '+' from the above, so that Integer/Rational is calculated as it is.
+        if defined? (self.begin().succ)
+          Range.new(self.begin().succ, self.end, exclude_end?).send(__method__, *rest)
+        else
+          size_no_exclude = Range.new(self.begin, self.end).send(__method__, *rest)	# exclude_end? == true, ie., Range with both ends inclusinve.
+          diff = self.end - self.begin
+          if diff.to_i == diff		# Integer difference
+            return size_no_exclude - 1	# At least exclude_begin?==true (so exclude_end? does not matter)
+          else
+            return size_no_exclude
+          end
+        end
       rescue TypeError
         # Non-Numeric
         if defined? self.begin().succ
@@ -658,7 +723,7 @@ class RangeExtd < Range
 
 
   # Private class method to evaluate the arguments.
-  def self._get_init_args(*inar)
+  def self._get_init_args(*inar, **hsopt)
     nMin = 1; nMax = 4
     if inar.size < nMin || nMax < inar.size
       raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
@@ -694,7 +759,8 @@ class RangeExtd < Range
         raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
       end
 
-      arRet = [inar[0].begin, inar[0].end, exclude_end, exclude_begin]
+      beginend = [inar[0].begin, inar[0].end]
+      # arRet = [inar[0].begin, inar[0].end, exclude_end, exclude_begin]
       # @rangepart = Range.new(inar[0].begin, inar[0].end, exclude_end)
 
     when :object
@@ -710,14 +776,22 @@ class RangeExtd < Range
         exclude_end   = false
       end
 
-      arRet = [inar[0], inar[1], exclude_end, exclude_begin]
+      beginend = [inar[0], inar[1]]
+      # arRet = [inar[0], inar[1], exclude_end, exclude_begin]
       # @rangepart = Range.new(inar[0], inar[1], exclude_end)
 
     else
       raise	# (for coding safety)
     end		# case hsFlag[:prm1st]
 
-    arRet
+    if hsopt.has_key?(:exclude_begin)
+      exclude_begin = (hsopt[:exclude_begin] && true)
+    end
+    if hsopt.has_key?(:exclude_end)
+      exclude_end   = (hsopt[:exclude_end] && true)
+    end
+
+    beginend + [exclude_end, exclude_begin]
 
   end	# def self._get_init_args(*inar)
 
@@ -751,6 +825,11 @@ class RangeExtd < Range
   #
   # Note the last example may change in the future release.
   #
+  # Note ([2]..[5]) is NOT valid, because Array does not include Comparable
+  # for some reason, as of Ruby 2.1.1, even though it has the redefined
+  # and working [#<=>].  You can make those valid, by including Comparable
+  # in Array class, should you wish.
+  #
   # @example
   #
   #    RangeExtd.valid?(nil..nil)     # => false
@@ -760,25 +839,35 @@ class RangeExtd < Range
   #    RangeExtd.valid?(0..0,  true)  # => false
   #    RangeExtd.valid?(0...0, true)  # => true
   #    RangeExtd.valid?(2..-1)        # => false
-  #    RangeExtd.valid?(RangeExtd::NONE)       # => true
-  #    RangeExtd.valid?(RangeExtd::EVERYTHING) # => true
-  #    RangeExtd.valid?(3..Float::INFINITY)    # => true
+  #    RangeExtd.valid?(RangeExtd::NONE)     # => true
+  #    RangeExtd.valid?(RangeExtd::ALL)      # => true
+  #    RangeExtd.valid?(3..Float::INFINITY)  # => true
   #    RangeExtd.valid?(3..Float::INFINITY, true)  # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d)        # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d, true)  # => true
   #
-  # @overload new(range, [exclude_begin=false, [exclude_end=false]])
-  #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
-  #   @param exclude_begin [Object] true or false(Default) or any
-  #   @param exclude_end [Object] true or false(Default) or any.
+  # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
+  #  If there is any duplication, those specified in the optional hash have the highest
+  #  priority.  Then the two descrete Boolean parameters have the second.
+  #  If not, the values embeded in the {Range} or {RangeExtd} object
+  #  in the parameter are used.  In default, both of them are false.
   #
-  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
+  # @overload new(range, [exclude_begin=false, [exclude_end=false]], opts)
+  #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
+  #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
+  #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
+  #   @option opts [Boolean] :exclude_begin If specified, this has the highest priority, or false in default.
+  #   @option opts [Boolean] :exclude_end If specified, this has the highest priority, or false in default.
+  #
+  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
   #   @param obj_begin [Object] Any object that is {Comparable} with end
   #   @param obj_end [Object] Any object that is Comparable with begin
-  #   @param exclude_begin [Object] true or false(Default) or any
-  #   @param exclude_end [Object] true or false(Default) or any.
+  #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
+  #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
+  #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
+  #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
-  def self.valid?(*inar)
+  def self.valid?(*inar, **hsopt)
     (vbeg, vend, exc_beg, exc_end) = _get_init_args(*inar)
 
     if (vbeg.nil? && vend.nil? && exc_beg && exc_end)
@@ -920,7 +1009,7 @@ end	# class RangeExtd < Range
 #== Summary
 #
 # Modifies {#==}, {#eql?} and add methods of
-# {#valid?}, {#empty?}, {#null?}, {#is_none?} and {#is_everything?}.
+# {#valid?}, {#empty?}, {#null?}, {#is_none?} and {#is_all?}.
 #
 class Range
 
@@ -977,9 +1066,9 @@ class Range
   #    (0...0).valid?    # => false
   #    (2..-1).valid?    # => false
   #    RangeExtd(0...0, true)   # => true
-  #    (3..Float::INFINITY).valid?   # => true
-  #    RangeExtd::NONE.valid?        # => true
-  #    RangeExtd::EVERYTHING.valid?  # => true
+  #    (3..Float::INFINITY).valid?  # => true
+  #    RangeExtd::NONE.valid?       # => true
+  #    RangeExtd::ALL.valid?        # => true
   # 
   # @note By definition, all the {RangeExtd} instances are valid,
   #  because {RangeExtd#new} checks the validity.
@@ -1050,7 +1139,7 @@ class Range
         if self.exclude_end?
           true	# RangeOpen::NONE
         else
-          false	# RangeOpen::EVERYTHING
+          false	# RangeOpen::ALL
         end
       else
         if defined?(self.exclude_begin?)
@@ -1080,7 +1169,7 @@ class Range
   end
 
   # @return [FalseClass]
-  def is_everything?
+  def is_all?
     false
   end
 

@@ -5,7 +5,7 @@ This package contains RangeExtd class, the Extended Range class that features:
 
  1. includes exclude_begin? (to exclude the "begin" boundary),
  2. allows open-ended range (to the infinity),
- 3. defines NONE and EVERYTHING constants,
+ 3. defines NONE and ALL constants,
  4. the first self-consistent logical structure,
  5. complete backward-compatibility within the built-in Range.
 
@@ -62,6 +62,14 @@ with it, and I think it achieves the good logical completeness within the frame.
 I hope you find it to be useful.
 
 
+==== NOTE: Relationship with Rangesmaller
+
+This package supercedes the obsolete Rangesmaller package and class,
+with the added open-ended feature, and a different interface in
+creating a new instance.
+{https://rubygems.org/gems/rangesmaller}
+
+
 == Install
 
   gem install range_extd
@@ -100,17 +108,20 @@ Here are some simple examples.
    RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
    RangeExtd(1, 1, false, true)  # => ArgumentError
    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
-    == RangeExtd::EVERYTHING  # => true
+    == RangeExtd::ALL  # => true
 
 Basically, there are two forms:
 
-   RangeExtd(range, [exclude_begin=false, [exclude_end=false]])
-   RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
+   RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
+   RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
 
-The last two parameters specify the respective boundary to be excluded if true,
+The two parameters in the brackets specify the respective boundary to be excluded if true,
 or included if false (Default).  If they contradict to the first
 parameter of the range (Range or RangeExtd), those latter two parameters are used.
+Also, you can specify the same parameters as the options <tt>:exclude_begin</tt>
+and <tt>:exclude_end</tt>, which have the highest priority, if specified.
 <tt>RangeExtd.new()</tt> is the same thing.
+
 
 === Slightly more advanced uses
 
@@ -129,7 +140,7 @@ parameter of the range (Range or RangeExtd), those latter two parameters are use
    RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
    RangeExtd(?a, ?e, true, true).empty? # => false
    RangeExtd::NONE.is_none?             # => true
-   RangeExtd::EVERYTHING.is_everything? # => true
+   RangeExtd::ALL.is_all?               # => true
 
 All the methods that are in the built-in Range can be used.
 
@@ -182,7 +193,7 @@ sections).  Any attempt to try to create an instance that is not
 There are two constants defined in this class:
 
 * RangeExtd::NONE
-* RangeExtd::EVERYTHING
+* RangeExtd::ALL
 
 The former represents the empty range and the latter does the range
 covers everything, namely open-ended for the both negative and
@@ -198,7 +209,7 @@ Range class, as RangeExtd inherits it).
 * <tt>empty?</tt> 
 * <tt>null?</tt> 
 * <tt>is_none?</tt> 
-* <tt>is_everything?</tt> 
+* <tt>is_all?</tt> 
 
 There is a class method, which is equivalent to the instance
 method <tt>valid?</tt>.

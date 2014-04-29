@@ -39,9 +39,11 @@ class RangeExtd < Range
   # However any operator is, by Ruby's definition, not commutative,
   # unless both the classes define so.
   #
-  # There are only two built-in classes that are Comparable: String and Numeric
+  # There are only three built-in classes that are Comparable: String, Time and Numeric
   # (except for Complex).
-  # For String class objects, the [#<=>] operator work as expected
+  # Note Date and DateTime objects are so, too, however practically
+  # they need "require", hence are (and must be) treated, the same as any other class.
+  # For String and Time class objects, the [#<=>] operator work as expected
   # in the commutative way.
   #    ?z <=> RangeExtd::Infinity::POSITIVE    # => nil
   #    RangeExtd::Infinity::POSITIVE <=> ?z    # => 1.
@@ -80,7 +82,8 @@ class RangeExtd < Range
   # However, some existing Comparable classes, perhaps written by some
   # one else may not be so polite, and has disabled comparison
   # with any object but those intended.  Unlucky you!
-  # 
+  # For example, the classes like Date and DateTime are one of them.
+  #
   # For that sort of circumstances,
   # the class method {RangeExtd::Infinity.overwrite_compare} provides
   # a convenient way to overcome this problem to make

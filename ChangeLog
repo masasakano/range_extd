@@ -1,6 +1,16 @@
 -----
+(Version: 0.2.0)
+2014-04-29  Masa Saskano
+ * Changed the name of a constant from RangeExtd::EVERYTHING to RangeExtd::ALL.
+	Now accepts optional arguments in RangeExtd.new().
+	Bug fix in RangeExtd#size when the begin is Float/Rational.
+	Updated the embeded document in infinity.rb, mentioning about Time and Date classes.
+	Added a text file News at the top directory.
+
+-----
 (Version: 0.1.1)
-2014-04-28  Masa Saskano
+2014-04-28  Masa Sakano
+
  * Merging Japanese README into the same file as the English one.
 
 -----

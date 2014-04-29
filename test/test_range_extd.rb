@@ -340,6 +340,69 @@ return
     end
 
 
+    def test_new_exclude_begin_end
+      # Form 1: 1 parameters
+      assert !RangeExtd(3..5).exclude_begin?
+      assert !RangeExtd(3..5).exclude_end?
+      assert !RangeExtd(3..5).exclude_begin?
+      assert  RangeExtd(3...5).exclude_end?
+
+      # Form 1: 1 parameters: RangeExtd
+      assert !RangeExtd(RangeExtd(3...5)).exclude_begin?
+      assert  RangeExtd(RangeExtd(3...5)).exclude_end?
+      assert  RangeExtd(RangeExtd(3...5,7)).exclude_begin?
+
+      # Form 1: 2-3 parameters
+      assert  RangeExtd(3..5,7).exclude_begin?
+      assert !RangeExtd(3..5,7).exclude_end?
+      assert  RangeExtd(3..5,7,8).exclude_begin?
+      assert  RangeExtd(3..5,7,8).exclude_end?
+      assert  RangeExtd(3...5,7,8).exclude_begin?
+      assert  RangeExtd(3...5,7,8).exclude_end?
+      assert !RangeExtd(3...5,7,nil).exclude_end?
+      assert  RangeExtd(RangeExtd(3...5,7,nil)).exclude_begin?
+      assert  RangeExtd(RangeExtd(3...5,7,nil),7,8).exclude_begin?
+      assert  RangeExtd(RangeExtd(3..5,7),7,8).exclude_begin?
+      assert  RangeExtd(RangeExtd(3..5,7),7,8).exclude_end?
+      assert !RangeExtd(RangeExtd(3...5,7),nil,nil).exclude_begin?
+      assert !RangeExtd(RangeExtd(3...5,7),nil,nil).exclude_end?
+
+      # Form 1: 2-3 parameters + opts
+      assert !RangeExtd(3..5,7,     :exclude_begin =>nil).exclude_begin?
+      assert  RangeExtd(3..5,7,     :exclude_end =>8).exclude_end?
+      assert !RangeExtd(3..5,7,8,   :exclude_begin =>nil).exclude_begin?
+      assert !RangeExtd(3..5,7,8,   :exclude_end =>nil).exclude_end?
+      assert !RangeExtd(3...5,7,8,  :exclude_begin =>nil).exclude_begin?
+      assert !RangeExtd(3...5,7,8,  :exclude_end =>nil).exclude_end?
+      assert  RangeExtd(3...5,7,nil,:exclude_end =>9).exclude_end?
+
+      # Form 2: 2 parameters
+      assert !RangeExtd(3,5).exclude_begin?
+      assert !RangeExtd(3,5).exclude_end?
+
+      # Form 2: 3-4 parameters
+      assert  RangeExtd(3,5,9).exclude_begin?
+      assert !RangeExtd(3,5,9).exclude_end?
+      assert  RangeExtd(3,5,true,9).exclude_begin?
+      assert  RangeExtd(3,5,true,9).exclude_end?
+      assert !RangeExtd(3,5,true,nil).exclude_end?
+
+      # Form 2: 2-4 parameters + opts
+      assert  RangeExtd(3,5,          :exclude_begin =>8).exclude_begin?
+      assert !RangeExtd(3,5,false,    :exclude_begin =>8).exclude_end?
+      assert  RangeExtd(3,5,false,    :exclude_begin =>8).exclude_begin?
+      assert  RangeExtd(3,5,false,9,  :exclude_begin =>8).exclude_begin?
+      assert  RangeExtd(3,5,false,9,  :exclude_begin =>8).exclude_end?
+      assert !RangeExtd(3,5,false,nil,:exclude_begin =>8).exclude_end?
+      assert !RangeExtd(3,5,false,9,  :exclude_begin =>nil).exclude_begin?
+      assert  RangeExtd(3,5,false,9,  :exclude_begin =>false).exclude_end?
+      assert  RangeExtd(3...5,false,nil,:exclude_begin =>8, :exclude_end =>8).exclude_begin?
+      assert  RangeExtd(3...5,false,nil,:exclude_begin =>8, :exclude_end =>8).exclude_end?
+      assert !RangeExtd(3,5,false,9,  :exclude_end =>8).exclude_begin?
+      assert !RangeExtd(3,5,false,9,  :exclude_end =>false).exclude_end?
+      assert  RangeExtd(3,5,false,nil,:exclude_end =>8).exclude_end?
+    end
+
     def test_exclude_begin
       b = 1
       e = 4
@@ -354,7 +417,7 @@ return
       assert !RangeExtd.new(b,e,nil).exclude_end?
       assert  RangeExtd.new(b,e,'c').exclude_begin?
       assert !RangeExtd.new(b,e,'c').exclude_end?
-      assert  RangeExtd.new(b,e,:a =>5).exclude_begin?
+      assert  RangeExtd.new(b,e, :exclude_begin => 5).exclude_begin?
       assert !RangeExtd.new(b,e, false, false).exclude_begin?
       assert !RangeExtd.new(b,e, false, false).exclude_end?
       assert !RangeExtd.new(b,e, false, true ).exclude_begin?
@@ -389,12 +452,12 @@ return
       assert !((1...1).is_none?)
     end
 
-    # Test of Range(Extd)#is_everything?
-    def test_is_everything
-      assert  (RangeExtd::EVERYTHING.is_everything?)
-      assert  (RangeExtd(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).is_everything?)	# You can create it, if you want.
-      assert !((RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_everything?)	# Not the standard Range, though.
-      assert !(RangeExtd(-Float::INFINITY, Float::INFINITY).is_everything?)	# Different from Numeric, though.
+    # Test of Range(Extd)#is_all?
+    def test_is_all
+      assert  (RangeExtd::ALL.is_all?)
+      assert  (RangeExtd(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).is_all?)	# You can create it, if you want.
+      assert !((RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?)	# Not the standard Range, though.
+      assert !(RangeExtd(-Float::INFINITY, Float::INFINITY).is_all?)	# Different from Numeric, though.
     end
 
 
@@ -768,7 +831,7 @@ return
       assert_equal(@ie-@ib-1, @s22.size)
       assert_equal nil, RangeExtd("a", "c").size
       assert_equal 0, RangeExtd::NONE.size
-      assert_equal Float::INFINITY, RangeExtd::EVERYTHING.size
+      assert_equal Float::INFINITY, RangeExtd::ALL.size
 
       # Infinity
       inf = Float::INFINITY
@@ -784,17 +847,37 @@ return
       assert_equal inf, RangeExtd(   1,  inf, excl_ini).size
 
       # Float
-      rfi = (2.4..4.4)	# size() => 3	see [ruby-list:49797] from matz
-      rfe = (2.4...4.4)	# size() => 2
+      rfi = (2.8..4.8)	# size() => 3	see [ruby-list:49797] from matz
+      rfe = (2.8...4.8)	# size() => 2
       siz = rfi.size
       assert_equal siz,   RangeExtd(rfi).size
       assert_equal siz-1, RangeExtd(rfe).size
       assert_equal siz-1, RangeExtd(rfi, excl_ini).size
-      assert_equal siz-2, RangeExtd(rfe, excl_ini).size
-      assert_equal siz-1, RangeExtd(Rational(24,10)..4.4,  excl_ini).size
-      assert_equal siz-2, RangeExtd(Rational(24,10)...4.4, excl_ini).size
+      assert_equal siz-1, RangeExtd(rfe, excl_ini).size
+
+      # Float No.2
+      # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how {Range#size} behaves (in Japanese).
+      assert_equal  4, RaE(  1..5, true).size
+      assert_equal  3, RaE(  1..5, true, true).size		#  (1...5).size  == 3
+      assert_equal  4, RaE(Rational(1,1), 5, true, true).size   # (1/1...5).size == 4
+      assert_equal  3, RaE(1..Rational(5,1), true, true).size   # (1...1/5).size == 3
+      assert_equal  4, RaE(1..Rational(5,1), true, false).size  # (1..1/5).size  == 4
+
+      assert_equal  5, RaE(0.8..5, true).size
+      assert_equal  4, RaE(1.2..5, true).size
+      assert_equal  4, RaE(1.5..5, true).size
+      assert_equal  4, RaE(1.5..4.9, true).size
+      assert_equal  3, RaE(1.5...4.5, true).size
+      assert_equal  2, RaE(2.8...4.8, true).size
+      assert_equal  RaE(2.8...4.8, true).size, RaE(Rational(28,10)...4.8, true).size
+      assert_equal  RaE(2.8...4.8, true).size, RaE(Rational(28,10)...Rational(48,10), true).size
+      assert_equal  Float::INFINITY, RaE(0..Float::INFINITY, true).size
       # (0.5...5).size			# => 5 (Ruby 2.1)
       # (Rational(1,2)...5).size	# => 4 (Ruby 2.1) =>  Bug!
+
+      if 4.8-2.8 > 2	# => 2.0000000000000004
+        assert_equal  3, RaE(2.8...4.8, true).size
+      end
 
       # String
       rsi = (?a..?d)
@@ -876,10 +959,17 @@ return
       # end
     end
 
+    def test_Infinity_from_obj
+      assert_equal( 1, (?a <=> RangeExtd::Infinity::NEGATIVE))
+      assert_equal(-1, (?a <=> RangeExtd::Infinity::POSITIVE))
+      assert_equal( 1, (Time.now <=> RangeExtd::Infinity::NEGATIVE))
+      assert_equal(-1, (Time.now <=> RangeExtd::Infinity::POSITIVE))
+    end
+
 
     def test_Range_valid
       assert  RangeExtd::NONE.valid?
-      assert  RangeExtd::EVERYTHING.valid?
+      assert  RangeExtd::ALL.valid?
       assert  (1..3).valid?
       assert !(3..1).valid?
       assert  (?a..?a).valid?	# single element
@@ -904,7 +994,7 @@ return
 
     def test_Range_empty
       assert  RangeExtd::NONE.empty?
-      assert !RangeExtd::EVERYTHING.empty?
+      assert !RangeExtd::ALL.empty?
       assert    !(1..3).empty?
       assert_nil (3..1).empty?
       assert    !(?a..?a).empty?	# single element
@@ -933,7 +1023,7 @@ return
 
     def test_Range_nullfunc
       assert  RangeExtd::NONE.null?
-      assert !RangeExtd::EVERYTHING.null?
+      assert !RangeExtd::ALL.null?
       assert    !(1..3).null?
       assert     (3..1).null?
       assert    !(?a..?a).null?	# single element
@@ -996,15 +1086,15 @@ return
     end
 
 
-    def test_RangeExtd_everything
-      assert !RangeExtd::EVERYTHING.is_none?
-      assert  RangeExtd::EVERYTHING.valid?
-      assert !RangeExtd::EVERYTHING.null?
-      assert !RangeExtd::EVERYTHING.empty?
-      assert_equal (-Float::INFINITY..Float::INFINITY), RangeExtd::EVERYTHING
-      assert_equal RangeExtd::EVERYTHING, (-Float::INFINITY..Float::INFINITY)
-      assert_equal RangeExtd::Infinity::POSITIVE, RangeExtd::EVERYTHING.end
-      assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::EVERYTHING.begin
+    def test_RangeExtd_all
+      assert !RangeExtd::ALL.is_none?
+      assert  RangeExtd::ALL.valid?
+      assert !RangeExtd::ALL.null?
+      assert !RangeExtd::ALL.empty?
+      assert_equal (-Float::INFINITY..Float::INFINITY), RangeExtd::ALL
+      assert_equal RangeExtd::ALL, (-Float::INFINITY..Float::INFINITY)
+      assert_equal RangeExtd::Infinity::POSITIVE, RangeExtd::ALL.end
+      assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::ALL.begin
     end
 
     def test_RangeExtd_num
@@ -1147,6 +1237,22 @@ return
       assert_raises(TypeError){ (1.3...5).minmax }	# => TypeError: can't iterate from Float
 
       # RangeExtd#size
+      assert_equal 2, (1.4..2.6).size
+      assert_equal 2, (1.4..2.6).size
+      #     (2.5...4.5000000000000021).size  => 2
+      #     (2.8...4.8000000000000021).size  => 3
+      assert_equal 3, (2.8..4.8).size
+      assert(RangeExtd(1..5, true, true)      == RangeExtd(Rational(1,1), 5, true, true))
+      assert(RangeExtd(1..5, true, true).size != RangeExtd(Rational(1,1), 5, true, true).size)
+      #    4.4 - 2.4   # => 2.0000000000000004
+      #    4.8 - 2.8   # => 2.0
+      assert(! RangeExtd(1..5, true, true).eql?(RangeExtd(Rational(1,1), 5, true, true)))  # => false
+      assert_equal [2, 3, 4], RangeExtd(1..5, true, true).to_a      # => [2, 3, 4]
+      assert_equal 3, RangeExtd(1..5, true, true).to_a.size # => 3
+      assert_raises(TypeError){ RangeExtd(Rational(1,1)..5).to_a }	# => TypeError
+      assert_equal 3, RangeExtd(2.4..4.4, true, true).size  # => 3
+      assert_equal 2, RangeExtd(2.8..4.8, true, true).size  # => 2
+
       assert_equal 5, (1..5).size
       assert_equal 4, (1...5).size
       assert_equal 5, (0.8...5).size	# => 5	# Why???
@@ -1170,7 +1276,7 @@ return
       assert  RangeExtd.valid?(0...0, true)  # => true
       assert !RangeExtd.valid?(2..-1)        # => false
       assert  RangeExtd.valid?(RangeExtd::NONE)       # => true
-      assert  RangeExtd.valid?(RangeExtd::EVERYTHING) # => true
+      assert  RangeExtd.valid?(RangeExtd::ALL) # => true
       assert  RangeExtd.valid?(3..Float::INFINITY)    # => true
       assert  RangeExtd.valid?(3..Float::INFINITY, true)  # => true
       assert  RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d)        # => true
@@ -1190,7 +1296,7 @@ return
       assert  RangeExtd(0...0, true)   # => true
       assert  (3..Float::INFINITY).valid?   # => true
       assert  RangeExtd::NONE.valid?        # => true
-      assert  RangeExtd::EVERYTHING.valid?  # => true
+      assert  RangeExtd::ALL.valid?  # => true
 
       # Range.empty?
       assert_equal nil, (nil..nil).empty?  # => nil

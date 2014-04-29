@@ -1,0 +1,13 @@
+-----
+(Version: 0.2.0) 2014-04-29
+ * Changed the name of a constant from RangeExtd::EVERYTHING to RangeExtd::ALL.
+ * Now accepts optional arguments in RangeExtd.new().
+ * Bug fix in RangeExtd#size when the begin is Float/Rational.
+
+-----
+(Version: 0.1.1) 2014-04-28
+ * Merging Japanese README into the same file as the English one.
+
+-----
+(Version: 0.1.0) 2014-04-27
+ * First upload to RubyGems.
