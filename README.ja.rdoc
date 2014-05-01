@@ -198,21 +198,23 @@ The former represents the empty range and the latter does the range
 covers everything, namely open-ended for the both negative and
 positive directions.
 
-In addition to all the standard methods of Range, the following
-methods are added to both RangeExtd and Range classes.
+In addition to all the standard methods of {Range}, the following
+methods are added to both {RangeExtd} and {Range} classes.
 See the document of each method for detail (some are defined only in
-Range class, as RangeExtd inherits it).
+{Range} class, as {RangeExtd} inherits it).
 
-* <tt>exclude_begin?</tt> 
+* <tt>exclude_begin?</tt> (not defined in {Range} class)
 * <tt>valid?</tt> 
 * <tt>empty?</tt> 
 * <tt>null?</tt> 
 * <tt>is_none?</tt> 
 * <tt>is_all?</tt> 
 
-There is a class method, which is equivalent to the instance
-method <tt>valid?</tt>.
+There are three class methods, the first of which is equivalent 
+to the instance method <tt>valid?</tt>:
 * <tt>RangeExtd.valid?</tt> 
+* <tt>RangeExtd.middle_strings=(ary)</tt> 
+* <tt>RangeExtd.middle_strings</tt> 
 
 What is valid (<tt>#valid?</tt> => true) as a range is defined as follows.
 
@@ -522,19 +524,22 @@ RangeExtd のインスタンスは、 Rangeと同じくイミュータブルで�
 
 前者は、空レンジを表し、後者は全てを含むレンジ、すなわち正負両方向に開いたレンジを表します。
 
-Rangeクラスの通常のメソッド全てに加え、以下が RangeExtd と Rangeクラス両方に加え
+{Range}クラスの通常のメソッド全てに加え、以下が {RangeExtd} と {Range}クラス両方に加え
 られています。詳細は、各メソッドのマニュアルを参照下さい(注: 幾つかのメソッドは
-Rangeクラスのみで定義されていて、 RangeExtd はそれを継承しています)。
+{Range}クラスのみで定義されていて、 {RangeExtd} はそれを継承しています)。
 
-* <tt>exclude_begin?</tt> 
+* <tt>exclude_begin?</tt>  ({Range}クラスでは未定義)
 * <tt>valid?</tt> 
 * <tt>empty?</tt> 
 * <tt>null?</tt> 
 * <tt>is_none?</tt> 
 * <tt>is_all?</tt> 
 
-インスタンスメソッドの <tt>valid?</tt> に等価なクラスメソッドも一つあります。
+クラスメソッドが三つあります。一番上のものは、
+インスタンスメソッドの <tt>valid?</tt> に等価です。
 * <tt>RangeExtd.valid?</tt> 
+* <tt>RangeExtd.middle_strings=(ary)</tt> 
+* <tt>RangeExtd.middle_strings</tt> 
 
 何がレンジとして有効 (<tt>#valid?</tt> => true) かの定義は以下です。
 

@@ -685,6 +685,7 @@ return
       assert_equal(2,   RangeExtd(0, ary.size).bsearch{|i| ary[i] >= 6})
       # http://www.ruby-doc.org/core-2.1.1/Range.html#method-i-bsearch
 
+      assert_equal(3,   RangeExtd(1..4).bsearch{   |i| ary[i] >=  9})	# (1..4).bsearch{|i| ary[i] >= 9} => 3
       assert_equal(nil, RangeExtd(3...4).bsearch{  |i| ary[i] >= 11})
       assert_equal(nil, RangeExtd(3.6...4).bsearch{|i| ary[i] >= 11})
       assert_equal(4,   RangeExtd(3...5).bsearch{  |i| ary[i] >= 11})
@@ -967,6 +968,12 @@ return
     end
 
 
+    def test_RangeExtdClass_valid
+      assert !RangeExtd.valid?(nil, nil, 9,9)	# All 3 were true up to Version 0.1.0
+      assert !RangeExtd.valid?(nil...nil,9,9)
+      assert !RangeExtd.valid?(nil..nil, 9,9)
+    end	# def test_RangeExtdClass_valid
+
     def test_Range_valid
       assert  RangeExtd::NONE.valid?
       assert  RangeExtd::ALL.valid?
@@ -1171,7 +1178,7 @@ return
 
 
     # Tests of all the examples in the document.
-    def test_indocument
+    def test_in_document
       # RangeExtd#initialize
       r = RangeExtd(5...8, true) 
       assert  r.exclude_begin?  # => true 
@@ -1283,6 +1290,35 @@ return
       assert  RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d, true)  # => false
 	# Note the last example may change in the future release.
 
+      # RangeExtd.middle_strings=
+      arDef = ['', '', '<', '..', '.', '', '']
+      assert_equal arDef, RangeExtd.middle_strings
+      assert_equal "2...6",  RangeExtd(2...6).to_s
+      assert_equal "2<..6",  RangeExtd(2,6,1).to_s
+      assert_equal "2...6",  RangeExtd(2...6).inspect
+      assert_equal "2<..6",  RangeExtd(2,6,1).inspect
+      assert_equal 'a...c',  RangeExtd(?a...?c).to_s
+      assert_equal 'a<..c',  RangeExtd(?a,?c,1).to_s
+      assert_equal '"a"..."c"',  RangeExtd(?a...?c).inspect
+      assert_equal '"a"<.."c"',  RangeExtd(?a,?c,1).inspect
+
+      RangeExtd.middle_strings=:math
+      assert_equal ['', '<=', '<', 'x', '<', '<=', ''], RangeExtd.middle_strings
+      assert_equal "2<=x<6", RangeExtd(2...6).to_s
+      assert_equal "2<x<=6", RangeExtd(2,6,1).to_s
+      ar=['[','(in)','(ex)',', ','(ex)','(in)',']']
+
+      RangeExtd.middle_strings=ar
+      assert_equal ar, RangeExtd.middle_strings
+      assert_equal "[2(in), (ex)6]", RangeExtd(2...6).to_s
+      assert_equal "[2(ex), (in)6]", RangeExtd(2,6,1).to_s
+
+      RangeExtd.middle_strings=:default  # Default
+      assert_equal arDef, RangeExtd.middle_strings
+      assert_equal ['', '', '<', '..', '.', '', ''], RangeExtd.middle_strings
+      assert_equal "2...6",  RangeExtd(2...6).to_s
+      assert_equal "2<..6",  RangeExtd(2,6,1).to_s
+
       # Range.==
       assert !(1...1).valid?
       assert !(nil...nil).valid?
@@ -1313,7 +1349,7 @@ return
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> ?z)
       assert_equal nil, (50 <=> RangeExtd::Infinity::POSITIVE)
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> 50)
-    end
+    end	# def test_in_document
 
     # def test_RangeExtd_special
     #   # Positive Infinity (== 'z')

@@ -1,11 +1,17 @@
 -----
+2014-05-01  Masa Saskano
+ * Fixed a bug that RangeExtd used to accept (nil...nil,true).  Not any more.
+	Added two class methods in RangeExtd: middle_strings=() and middle_strings().
+
+-----
 (Version: 0.2.0)
-2014-04-29  Masa Saskano
+2014-04-29  Masa Sakano
+
  * Changed the name of a constant from RangeExtd::EVERYTHING to RangeExtd::ALL.
-	Now accepts optional arguments in RangeExtd.new().
-	Bug fix in RangeExtd#size when the begin is Float/Rational.
-	Updated the embeded document in infinity.rb, mentioning about Time and Date classes.
-	Added a text file News at the top directory.
+ * 	Now accepts optional arguments in RangeExtd.new().
+ * 	Bug fix in RangeExtd#size when the begin is Float/Rational.
+ * 	Updated the embeded document in infinity.rb, mentioning about Time and Date classes.
+ * 	Added a text file News at the top directory.
 
 -----
 (Version: 0.1.1)

@@ -77,6 +77,8 @@ end
 #
 class RangeExtd < Range
 
+  @@middle_strings = []
+
   # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
   #  If there is any duplication, those specified in the optional hash have the highest
   #  priority.  Then the two descrete Boolean parameters have the second.
@@ -722,6 +724,10 @@ class RangeExtd < Range
   end
 
 
+  ##################################################
+  # Class methods
+  ##################################################
+
   # Private class method to evaluate the arguments.
   def self._get_init_args(*inar, **hsopt)
     nMin = 1; nMax = 4
@@ -852,28 +858,28 @@ class RangeExtd < Range
   #  If not, the values embeded in the {Range} or {RangeExtd} object
   #  in the parameter are used.  In default, both of them are false.
   #
-  # @overload new(range, [exclude_begin=false, [exclude_end=false]], opts)
+  # @overload new(range, [exclude_begin=false, [exclude_end=false]])
   #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
   #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
-  #   @option opts [Boolean] :exclude_begin If specified, this has the highest priority, or false in default.
-  #   @option opts [Boolean] :exclude_end If specified, this has the highest priority, or false in default.
   #
-  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
   #   @param obj_begin [Object] Any object that is {Comparable} with end
   #   @param obj_end [Object] Any object that is Comparable with begin
   #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
-  #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
-  #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
-  def self.valid?(*inar, **hsopt)
+  def self.valid?(*inar)
     (vbeg, vend, exc_beg, exc_end) = _get_init_args(*inar)
 
-    if (vbeg.nil? && vend.nil? && exc_beg && exc_end)
-      return true	# equivalent to self.is_none?
-      # But this routine is called from new(), hence is_none?() is not used.
+    if defined?(inar[0].is_none?) && inar[0].is_none? && exc_beg && exc_end
+      return true
     end
+      
+    # if (vbeg.nil? && vend.nil? && exc_beg && exc_end)
+    #   return true	# equivalent to self.is_none?
+    #   # But this routine is called from new(), hence is_none?() is not used.
+    # end
 
     begin
       t = (vbeg <=> vend)
@@ -912,11 +918,119 @@ class RangeExtd < Range
   end	# def valid?
 
 
+  # Set the class variable to be used in {RangeExtd#to_s} and {RangeExtd#inspect}
+  # to configure the format of their returned values.
+  #
+  # The parameters should be given as an Array with 7 elements of string
+  # in principle, which gives the characters for each index:
+  # 0. prefix
+  # 1. begin-inclusive
+  # 2. begin-exclusive
+  # 3. middle-string to bridge both ends
+  # 4. end-exclusive
+  # 5. end-inclusive
+  # 6. postfix
+  #
+  # If the elements [1] and [2], or [4] and [5] are equal,
+  # a warning is issued as some of {RangeExtd} in display will be indistinguishable.
+  # Note even if no warning is issued, that does not mean all the forms
+  # will be not ambiguous.  For example, if you specify
+  #   ['(', '', '.', '..', '.', '', ')']
+  # a string (3...7) can mean either exclusive {#begin} or {#end}.
+  # It is user's responsibility to make it right.
+  #
+  # The two most popular forms can be given as a Symbol instead of Array, that is,
+  #   :default  ( ['', '', '<', '..', '.', '', ''] )
+  #   :math     ( ['', '<=', '<', 'x', '<', '<=', ''] )
+  #
+  # @param hash [Array, Symbol]
+  # @return [Array, Symbol]
+  #
+  # @example
+  #    RangeExtd.middle_strings=:default  # Default
+  #    RangeExtd(2...6).to_s    # => "2...6"
+  #    RangeExtd(2,6,1).to_s    # => "2<..6"
+  #    RangeExtd.middle_strings=:math
+  #    RangeExtd(2...6).to_s    # => "2<=x<6"
+  #    RangeExtd(2,6,1).to_s    # => "2<x<=6"
+  #    RangeExtd.middle_strings=['[','(in)','(ex)',', ','(ex)','(in)',']']
+  #    RangeExtd(2...6).to_s    # => "[2(in), (ex)6]"
+  #    RangeExtd(2,6,1).to_s    # => "[2(ex), (in)6]"
+  #
+  def self.middle_strings=(ary)
+    case ary
+    when :default
+      @@middle_strings = ['', '', '<', '..', '.', '', '']
+    when :math
+      @@middle_strings = ['', '<=', '<', 'x', '<', '<=', '']
+    else
+      begin
+        if ary.size == 7
+          _dummy = 'a' + ary[6]
+          @@middle_strings = ary
+          if (ary[1] == ary[2]) || (ary[4] == ary[5])
+            warn "warning: some middle_strings are indistinguishable."
+          end
+        else
+          raise
+        end
+      rescue
+        raise ArgumentError, "invalid argument"
+      end
+    end
+  end
+
+  # See {RangExtd.middle_strings=}() for detail.
+  #
+  # @return [Array<String>]
+  def self.middle_strings()
+    @@middle_strings
+  end
+
+  self.middle_strings=:default	# Initialisation
+
+  ##################################################
   private
+  ##################################################
 
   # Core routine for {#inspect} and {#to_s}
   # @param [Symbol] method the method name.
   def re_inspect_core(method)
+    # 0. prefix
+    # 1. begin-inclusive
+    # 2. begin-exclusive
+    # 3. middle-string to bridge both ends
+    # 4. end-exclusive
+    # 5. end-inclusive
+    # 6. postfix
+
+    midStr = ''
+    if @exclude_begin
+      midStr += @@middle_strings[2]
+    else
+      midStr += @@middle_strings[1]
+    end
+    midStr += @@middle_strings[3]
+    if @exclude_end
+      midStr += @@middle_strings[4]
+    else
+      midStr += @@middle_strings[5]
+    end
+
+    if is_none?
+      strBegin = 'Null'		# Null<...Null
+      strEnd   = 'Null'
+    else
+      strBegin = self.begin.send(method)
+      strEnd   = self.end.send(method)
+    end
+
+    @@middle_strings[0] + strBegin + midStr + strEnd + @@middle_strings[6]
+  end	# def re_inspect_core(method)
+
+  # Core routine for {#inspect} and {#to_s}
+  # @param [Symbol] method the method name.
+  def re_inspect_core_orig(method)
     if @exclude_end
       midStr = "..."
     else
@@ -929,7 +1043,7 @@ class RangeExtd < Range
     else
       self.begin.send(method) + midStr + self.end.send(method)
     end
-  end	# def re_inspect_core(method)
+  end	# def re_inspect_core_orig(method)
 
 
   # Core routine for {#===} and {#eql?}

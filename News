@@ -1,4 +1,9 @@
 -----
+(Version: 0.3.0) 2014-05-02
+ * Fixed a bug that RangeExtd used to accept (nil...nil,true).  Not any more.
+ * Added two class methods in RangeExtd: middle_strings=() and middle_strings().
+
+-----
 (Version: 0.2.0) 2014-04-29
  * Changed the name of a constant from RangeExtd::EVERYTHING to RangeExtd::ALL.
  * Now accepts optional arguments in RangeExtd.new().
