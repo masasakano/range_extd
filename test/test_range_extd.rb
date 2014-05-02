@@ -281,6 +281,71 @@ return
       assert_equal(-@ib, j22.end)
     end
 
+    def test_new_middle_strings
+      aru = ['[','(in)','(ex)',', ','(ex)','(in)',']']
+      ark = [nil, :math, aru, :default]
+
+      ars = ['..', '<=x<=', aru[1]+aru[3]+aru[5]]; ars.push(ars[0])
+      ark.each_index do |i|
+        RangeExtd.middle_strings = ark[i] if ! ark[i].nil?
+        k11 = RangeExtd.new(@ib, ars[i], @ie)
+        assert !k11.exclude_begin?
+        assert !k11.exclude_end?
+        assert_equal @ib, k11.begin
+        assert_equal @ie, k11.end
+      end
+
+      ars = ['...', '<=x<', aru[1]+aru[3]+aru[4]]; ars.push(ars[0])
+      ark.each_index do |i|
+        RangeExtd.middle_strings = ark[i] if ! ark[i].nil?
+        k12 = RangeExtd.new(@ib, ars[i], @ie)
+        assert !k12.exclude_begin?
+        assert  k12.exclude_end?
+        assert_equal @ib, k12.begin
+        assert_equal @ie, k12.end
+      end
+
+      ars = ['<..', '<x<=', aru[2]+aru[3]+aru[5]]; ars.push(ars[0])
+      ark.each_index do |i|
+        RangeExtd.middle_strings = ark[i] if ! ark[i].nil?
+        k21 = RangeExtd.new(@ib, ars[i], @ie)
+        assert  k21.exclude_begin?
+        assert !k21.exclude_end?
+        assert_equal @ib, k21.begin
+        assert_equal @ie, k21.end
+      end
+
+      ars = ['<...', '<x<', aru[2]+aru[3]+aru[4]]; ars.push(ars[0])
+      ark.each_index do |i|
+        RangeExtd.middle_strings = ark[i] if ! ark[i].nil?
+        k22 = RangeExtd.new(@ib, ars[i], @ie)
+        assert  k22.exclude_begin?
+        assert  k22.exclude_end?
+        assert_equal @ib, k22.begin
+        assert_equal @ie, k22.end
+      end
+
+      l12 = RangeExtd.new(@ib, '..', @ie, true)
+      assert  l12.exclude_begin?
+      assert !l12.exclude_end?
+      assert_equal @ib, l12.begin
+      assert_equal @ie, l12.end
+
+      m22 = RangeExtd.new(-@ie, '..', -@ib, true, true)
+      assert  m22.exclude_begin?
+      assert  m22.exclude_end?
+      assert_equal(-@ie, m22.begin)
+      assert_equal(-@ib, m22.end)
+
+      assert_raises(ArgumentError){ RangeExtd.new(@ib, '....', @ie) }	# => the argument can not consist of a RangeExtd instance.
+      RangeExtd.middle_strings = :math
+      assert_raises(ArgumentError){ RangeExtd.new(@ib, '..', @ie) }	# => the argument can not consist of a RangeExtd instance.
+      RangeExtd.middle_strings = :default
+      assert_raises(ArgumentError){ RangeExtd.new(@ib, '..', @ie, T, nil, T) }	# => wrong number of arguments (6 for 1..5)
+      assert_raises(ArgumentError){ RangeExtd.new(@ib, @ie, T, nil, T) }	# => wrong number of arguments (5 for 2..4)
+      assert_raises(ArgumentError){ RangeExtd.new(@ib) }	# => wrong number of arguments (1 for 2..5)
+    end	# def test_new_middle_strings
+
     def test_new_const
       assert_equal @s22, RangeExtd(@r12, true)
     end

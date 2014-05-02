@@ -110,17 +110,24 @@ Here are some simple examples.
    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
     == RangeExtd::ALL  # => true
 
-Basically, there are two forms:
+Basically, there are three forms:
 
    RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
    RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+   RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
 
 The two parameters in the brackets specify the respective boundary to be excluded if true,
 or included if false (Default).  If they contradict to the first
 parameter of the range (Range or RangeExtd), those latter two parameters are used.
 Also, you can specify the same parameters as the options <tt>:exclude_begin</tt>
 and <tt>:exclude_end</tt>, which have the highest priority, if specified.
+The <tt>string_form</tt> in the third form is like ".." and "<...", which can be
+defined by a user (see {RangeExtd.middle_strings=}() for detail), and is arguably
+the most visibly recognisable way for any range with <tt>exclude_begin=true</tt>.
+
 <tt>RangeExtd.new()</tt> is the same thing.
+For more detail and examples, see {RangeExtd.new}.
+
 
 === Slightly more advanced uses
 
@@ -436,10 +443,11 @@ Versions:: The versions of this package follow Semantic Versioning (2.0.0) http:
    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
     == RangeExtd::ALL  # => true
 
-インスタンスを作成するのには、二通りあります。
+インスタンスを作成するのには、三通りあります。
 
    RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
    RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+   RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
 
 大括弧の中の二つのパラメーターが、それぞれ始点と終点とを除外する(true)、または含む
 (false)を指示します。もし、その二つのパラメーターが最初のパラメーターのレンジ
@@ -447,7 +455,12 @@ Versions:: The versions of this package follow Semantic Versioning (2.0.0) http:
 ます。同じパラメーターをオプションHash
 (<tt>:exclude_begin</tt> と <tt>:exclude_end</tt>)で指定することもできて、
 もし指定されればそれらが最高の優先度を持ちます。
+第三の方法の <tt>string_form</tt> とは、".." や "<..."のことで、ユーザー定義
+も可能です(詳しくは {RangeExtd.middle_strings=}() を参照のこと)。これが、
+視覚的には最もわかりやすい方法かも知れません。
+
 <tt>RangeExtd.new()</tt> も上と同意味です。
+さらなる解説及び例は、{RangeExtd.new}を参照して下さい。
 
 
 === 少し上級編

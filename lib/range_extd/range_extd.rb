@@ -82,11 +82,21 @@ class RangeExtd < Range
   # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
   #  If there is any duplication, those specified in the optional hash have the highest
   #  priority.  Then the two descrete Boolean parameters have the second.
-  #  If not, the values embeded in the {Range} or {RangeExtd} object
+  #  If not, the values embeded in the {Range} or {RangeExtd} object or the String form
   #  in the parameter are used.  In default, both of them are false.
   #
+  # @example 
+  #    RangeExtd(1...2)
+  #    RangeExtd(1..3, true)
+  #    RangeExtd(2..3, :exclude_begin => true)
+  #    RangeExtd(1, 4, false, true)
+  #    RangeExtd(1,'<...',5)
+  #    RangeExtd.middle_strings = :math
+  #    RangeExtd(2,'<x<=',5)
+  #    RangeExtd(RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE)
+  #
   # @overload new(range, [exclude_begin=false, [exclude_end=false]], opts)
-  #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
+  #   @param [Object] range Instance of {Range} or its subclasses, including {RangeExtd}
   #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
   #   @option opts [Boolean] :exclude_begin If specified, this has the highest priority, or false in default.
@@ -100,8 +110,19 @@ class RangeExtd < Range
   #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
   #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
-  # Note no possible opts are defined at present.
-  # Any opts given as Hash are simply ignored.
+  # @overload new(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+  #   @param obj_begin [Object] Any object that is {Comparable} with end
+  #   @param string_form [Object] String form (without pre/postfix) of range expression set by {RangeExtd.middle_strings=}()
+  #   @param obj_end [Object] Any object that is Comparable with begin
+  #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
+  #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
+  #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
+  #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
+  #
+  # Note if you use the third form with "string_form" with the user-defined string
+  # (via {RangeExtd.middle_strings=}()), make 100 per cent sure
+  # of what you are doing.  If the string is ambiguous, the result may differ
+  # from what you thought you would get!  See {RangeExtd.middle_strings=}() for detail.
   #
   # @raise [ArgumentError] particularly if the range to be created is not {#valid?}.
   def initialize(*inar, **hsopt)	# **k expression from Ruby 1.9?
@@ -399,7 +420,7 @@ class RangeExtd < Range
   end	# def cover?(i)
 
 
-  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() or {#rangepart} does not have a method of {#succ}, then even if no block is given, this method raises TypeError straightaway.
+  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() or {#rangepart} does not have a method of [#succ], then even if no block is given, this method raises TypeError straightaway.
   # @return [RangeExtd] self
   # @return [Enumerator] if block is not given.
   #
@@ -427,10 +448,10 @@ class RangeExtd < Range
   end
 
 
-  # Like {Range#last}, if no argument is given, it behaves like {#begin()}, that is, it returns the initial value, regardless of {#exclude_begin?}.
+  # Like {Range#last}, if no argument is given, it behaves like {#begin}(), that is, it returns the initial value, regardless of {#exclude_begin?}.
   # However, if an argument is given (nb., acceptable since Ruby 1.9) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ().
-  # @raise [TypeError] if the argument (Numeric) is given and if {#exclude_begin?} is true, yet if {#begin}().succ is not defined, or yet if {#none}?
-  # @param [Integer] Optional.  Must be non-negative.  Consult {Range#first} for detail.
+  # @raise [TypeError] if the argument (Numeric) is given and if {#exclude_begin?} is true, yet if {#begin}().succ is not defined, or yet if {#is_none?}
+  # @param rest [Integer] Optional.  Must be non-negative.  Consult {Range#first} for detail.
   # @return [Object] if no argument is given, equivalent to {#end}.
   # @return [Array] if an argument is given.
   def first(*rest)
@@ -695,7 +716,7 @@ class RangeExtd < Range
 
 
   # See {#each}.
-  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() does not have the method {#succ}, then even if no block is given, this method raises TypeError straightaway.
+  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() does not have the method [#succ], then even if no block is given, this method raises TypeError straightaway.
   # @return [RangeExtd] self
   # @return [Enumerator] if block is not given.
   #
@@ -730,12 +751,12 @@ class RangeExtd < Range
 
   # Private class method to evaluate the arguments.
   def self._get_init_args(*inar, **hsopt)
-    nMin = 1; nMax = 4
+    nMin = 1; nMax = 5
     if inar.size < nMin || nMax < inar.size
       raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
     end
 
-    hsFlag = { :prm1st => nil }
+    hsFlag = { :prm1st => nil, :excl_offset => nil }
     if    defined? inar[0].exclude_begin?
       hsFlag[:prm1st] = :rangeextd
     elsif defined? inar[0].exclude_end?
@@ -760,8 +781,8 @@ class RangeExtd < Range
         exclude_end   = inar[0].exclude_end?
       end
 
-      if inar.size > 3
-        nMin = 1; nMax = 3
+      nMin = 1; nMax = 3
+      if inar.size > nMax
         raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
       end
 
@@ -770,19 +791,61 @@ class RangeExtd < Range
       # @rangepart = Range.new(inar[0].begin, inar[0].end, exclude_end)
 
     when :object
-      if inar.size > 2
-        exclude_begin = (true ^! inar[2])
-      else
-        exclude_begin = false
+      nMin = 2; nMax = 5
+      if inar.size < 2
+        raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
       end
 
-      if inar.size > 3
-        exclude_end   = (true ^! inar[3])
-      else
-        exclude_end   = false
-      end
-
+      # Default: assuming the form (obj_begin, obj_end, [excl_begin, [excl_end]])
       beginend = [inar[0], inar[1]]
+      hsFlag[:excl_offset] = 0
+      exclude_begin = false
+      exclude_end   = false
+
+      # Now, checking if the form is the String one, and if so, process it.
+      arMid = @@middle_strings.map{|i| Regexp.quote(i)}	# See self.middle_strings=(ary) for description.
+      if inar.size > 2 && defined?(inar[1].=~)
+        begin
+          cmp = (inar[0] <=> inar[2]).abs
+        rescue
+          cmp = nil
+        end
+        if ((cmp == 0)||(cmp == 1)) && (inar[1] =~ /^(#{arMid[1]}|#{arMid[2]})#{arMid[3]}(#{arMid[4]}|#{arMid[5]})$/)
+          # The form is (obj_begin, midStr, obj_end, [excl_begin, [excl_end]])
+          # Hence all the default values are overwritten.
+          beginend = [inar[0], inar[2]]
+          hsFlag[:excl_offset] = 1
+          if $1 == @@middle_strings[1]
+            exclude_begin = false
+          else
+            exclude_begin = true
+          end
+          if $2 == @@middle_strings[4]
+            exclude_end   = true
+          else
+            exclude_end   = false
+          end
+        else
+          nMin = 2; nMax = 4
+          if inar.size > nMax
+            raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
+          end
+        end
+      else
+        nMin = 2; nMax = 4
+        if inar.size > nMax
+          raise ArgumentError, "wrong number of arguments (#{inar.size} for #{nMin}..#{nMax})"
+        end
+      end
+
+      if inar.size > 2+hsFlag[:excl_offset]
+        exclude_begin = (true ^! inar[2+hsFlag[:excl_offset]])	# 3rd or 4th argument
+      end
+
+      if inar.size > 3+hsFlag[:excl_offset]
+        exclude_end   = (true ^! inar[3+hsFlag[:excl_offset]])	# 4th or 5th argument
+      end
+
       # arRet = [inar[0], inar[1], exclude_end, exclude_begin]
       # @rangepart = Range.new(inar[0], inar[1], exclude_end)
 
@@ -810,7 +873,7 @@ class RangeExtd < Range
   # This routine is also impremented as a method in {Range},
   # and accordingly its sub-classes.
   #
-  # This routine is called from {RangeExtd#new}, hence
+  # This routine is called from {RangeExtd.new}, hence
   # for any instance of {RangeExtd} class, its {#valid?} returns true.
   #
   # What is valid is defined as follows:
@@ -876,11 +939,6 @@ class RangeExtd < Range
       return true
     end
       
-    # if (vbeg.nil? && vend.nil? && exc_beg && exc_end)
-    #   return true	# equivalent to self.is_none?
-    #   # But this routine is called from new(), hence is_none?() is not used.
-    # end
-
     begin
       t = (vbeg <=> vend)
       begin
@@ -943,7 +1001,7 @@ class RangeExtd < Range
   #   :default  ( ['', '', '<', '..', '.', '', ''] )
   #   :math     ( ['', '<=', '<', 'x', '<', '<=', ''] )
   #
-  # @param hash [Array, Symbol]
+  # @param ary [Array, Symbol]
   # @return [Array, Symbol]
   #
   # @example
@@ -1142,9 +1200,9 @@ class Range
   # use them;
   #    (1...1).valid?   # => false
   # On the other hand, {RangeExtd} class does not accept or create
-  # any invalid range; for any {RangeExtd} object, {RangeExtd#valid}
+  # any invalid range; for any {RangeExtd} object, RangeExtd#valid?
   # returns true.  For example, there is no {RangeExtd} object
-  # that is expressed as (1...1) (See {#valid} for detail).
+  # that is expressed as (1...1) (See {#valid?} for detail).
   #
   # For that reason, when those non-valid Range objects are compared
   # with a {RangeExtd} object, the returned value may not be what
@@ -1153,7 +1211,7 @@ class Range
   # The former is an invalid range, while the latter is
   # a rigidly-defined empty range.
   #
-  # Consult {#valid} and {RangeExtd#==} for more detail.
+  # Consult {#valid?} and {RangeExtd#==} for more detail.
   def ==(r)
     equal_core(r, :==, :equal_prerangeextd?)
   end
@@ -1185,7 +1243,7 @@ class Range
   #    RangeExtd::ALL.valid?        # => true
   # 
   # @note By definition, all the {RangeExtd} instances are valid,
-  #  because {RangeExtd#new} checks the validity.
+  #  because {RangeExtd.new} checks the validity.
   def valid?
     RangeExtd.valid?(self)
   end	# def valid?
@@ -1199,17 +1257,17 @@ class Range
   #
   # 1. the range must be valid: {#valid?} => true
   # 2. if the range id discrete, that is, {#begin} has
-  #    {#succ} method, there must be no member within the range: 
+  #    [#succ] method, there must be no member within the range: 
   #    {#to_a}.empty? => true
   # 3. if the range is continuous, that is, {#begin} does not have
-  #    {#succ} method, {#begin} and {#end} must be equal
+  #    [#succ] method, {#begin} and {#end} must be equal
   #    (({#begin} <=> {#end}) => 0) and both the boundaries must
   #    be excluded: ({#exclude_begin?} && {#exclude_end?}) => true.
   #    Note that ranges with equal {#begin} and {#end} with
   #    inconsistent two exclude status are not valid, and the built-in
   #    Range always has the {#begin}-exclude status of false.
   #
-  # In these conditions, none of Range instance would return true in {#empty}.
+  # In these conditions, none of Range instance would return true in {#empty?}.
   #
   # @example
   #   (nil..nil).empty?  # => nil
@@ -1222,7 +1280,7 @@ class Range
   #   RangeExtd::NONE.empty?          # => true
   #
   # @note to check whether it is either empty or invalid, use {#null?}.
-  # See {#valid?} and {RangeExtd.valid}, too.
+  # See {#valid?} and {RangeExtd.valid?}, too.
   #
   # @return [Boolean, nil]
   def empty?
@@ -1336,7 +1394,7 @@ end	# class Range
 
 
 # Constant-form of {#RangeExtd}.
-# {#RangeExtd(*)} is equivalent to {#RangeExtd.new}.
+# #RangeExtd(*) is equivalent to {#RangeExtd.new}.
 #
 def RangeExtd(*rest, &b)
   RangeExtd.new(*rest, &b)

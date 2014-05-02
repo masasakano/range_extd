@@ -110,17 +110,23 @@ Here are some simple examples.
    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
     == RangeExtd::ALL  # => true
 
-Basically, there are two forms:
+Basically, there are three forms:
 
    RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
    RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+   RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
 
 The two parameters in the brackets specify the respective boundary to be excluded if true,
 or included if false (Default).  If they contradict to the first
 parameter of the range (Range or RangeExtd), those latter two parameters are used.
 Also, you can specify the same parameters as the options <tt>:exclude_begin</tt>
 and <tt>:exclude_end</tt>, which have the highest priority, if specified.
+The <tt>string_form</tt> in the third form is like ".." and "<...", which can be
+defined by a user (see {RangeExtd.middle_strings=}() for detail), and is arguably
+the most visibly recognisable way for any range with <tt>exclude_begin=true</tt>.
+
 <tt>RangeExtd.new()</tt> is the same thing.
+For more detail and examples, see {RangeExtd.new}.
 
 
 === Slightly more advanced uses

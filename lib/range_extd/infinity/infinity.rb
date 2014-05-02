@@ -75,7 +75,7 @@ class RangeExtd < Range
   # is immediately comparable with the {RangeExtd::Infinity} instances,
   #    YourComparable.new <=> RangeExtd::Infinity::POSITIVE    # => -1
   #    RangeExtd::Infinity::POSITIVE <=> YourComparable.new    # => 1
-  # except for the infinity inscances in YourComparable (see #{==}).
+  # except for the infinity inscances in YourComparable (see {#==}).
   #
   # See the document in {Object#<=>} in this code/package for detail.
   #
@@ -98,7 +98,7 @@ class RangeExtd < Range
   # {#===}, {#==}, {#<=>}, {#succ}, {#to_s}, {#inspect},
   # {#infinity?}, {#positive?} and {#negative?}.
   #
-  # Note that the unary operand {#-@} is not defined.
+  # Note that the unary operand [#-@] is not defined.
   #
   class Infinity
   
