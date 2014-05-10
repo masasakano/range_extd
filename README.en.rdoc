@@ -147,6 +147,7 @@ For more detail and examples, see {RangeExtd.new}.
    RangeExtd(?a, ?e, true, true).empty? # => false
    RangeExtd::NONE.is_none?             # => true
    RangeExtd::ALL.is_all?               # => true
+   (3...7).equiv?(3..6)    # => true
 
 All the methods that are in the built-in Range can be used.
 
@@ -216,6 +217,7 @@ See the document of each method for detail (some are defined only in
 * <tt>null?</tt> 
 * <tt>is_none?</tt> 
 * <tt>is_all?</tt> 
+* <tt>equiv?</tt> 
 
 There are three class methods, the first of which is equivalent 
 to the instance method <tt>valid?</tt>:

@@ -326,6 +326,77 @@ class RangeExtd < Range
   alias :member? :===
 
 
+  # Return true if self and the other are equivalent; if [#to_a] is defined, it is similar to
+  #    (self.to_a == other.to_a)
+  # (though the ends are checked more rigorously), and if not, equivalent to
+  #    (self == other)
+  #
+  # @example
+  #    RangeExtd(2...7,true).equiv?(3..6)     # => true
+  #    RangeExtd(2...7,true).equiv?(3..6.0)   # => false
+  #    RangeExtd(2...7,true).equiv?(3.0..6.0) # => false
+  #    RangeExtd(2...7,true).equiv?(3..6.5)   # => false
+  #    RangeExtd(2...7,true).equiv?(RangeExtd(2.0...7.0,true))   # => true
+  #    RangeExtd(2...7,true).equiv?(3...7.0)  # => true
+  #
+  # @param other [Range, RangeExtd]
+  def equiv?(other)
+    # This routine is very similar to Range#equiv? except
+    # exclude_begin? in this object is always defined, hence
+    # a more thorough check is needed.
+
+    t_or_f = (defined?(self.begin.succ) && defined?(other.begin.succ) && defined?(other.end) && defined?(other.exclude_end?))
+    if ! t_or_f
+      return(self == other)	# succ() for begin is not defined.
+    else
+      # Checking the begins.
+      if defined?(other.exclude_begin?)
+        other_excl_beg = other.exclude_begin?
+      else
+        other_excl_beg = false
+      end
+
+      if (self.begin == other.begin)
+        if (exclude_begin? ^! other_excl_beg)
+          # Pass
+        else
+          return false
+        end
+      else
+        if (exclude_begin? ^! other_excl_beg)
+          return false
+        elsif (exclude_begin? && (self.begin.succ == other.begin)) ||
+              (other_excl_beg && (self.begin == other.begin.succ))
+          # Pass
+        else
+          return false
+        end
+      end	# if (self.begin == other.begin)	# else
+          
+      # Now, the begins agreed.  Checking the ends.
+      if (self.end == other.end)
+        if (exclude_end? ^! other.exclude_end?)
+          return true
+        else
+          return false
+        end
+      else	# if (self.end == other.end)
+        if (exclude_end? ^! other.exclude_end?)
+          return false
+          # elsif defined?(other.last) && (self.last(1) == other.last(1))	# Invalid for Ruby 1.8 or earlier	# This is not good - eg., in this case, (1..5.5).equiv?(1..5.4) would return true.
+          
+        #   return true
+        elsif (      exclude_end? && defined?(other.end.succ) && (self.end == other.end.succ)) ||
+              (other.exclude_end? && defined?( self.end.succ) && (self.end.succ == other.end))
+          return true
+        else
+          return false
+        end
+      end	# if (self.end == other.end)
+    end	# if ! t_or_f
+  end	# def equiv?(other)
+
+
   # @return [Object]
   def begin()
     @rangepart.begin()
@@ -1344,6 +1415,60 @@ class Range
   def is_all?
     false
   end
+
+
+  # Return true if self and the other are equivalent; if [#to_a] is defined, it is similar to
+  #    (self.to_a == other.to_a)
+  # (though the ends are checked more rigorously), and if not, equivalent to
+  #    (self == other)
+  #
+  # @example
+  #    (3...7).equiv?(3..6)      # => true
+  #    (3...7).equiv?(3..6.0)    # => false
+  #    (3...7).equiv?(3.0..6.0)  # => false
+  #    (3...7).equiv?(3..6.5)    # => false
+  #    (3...7).equiv?(3.0...7.0) # => true
+  #    (3...7.0).equiv?(3..6)    # => true
+  #    (3...7.0).equiv?(3.0..6)  # => false
+  #
+  # @param other [Range, RangeExtd]
+  def equiv?(other)
+    t_or_f = (defined?(self.begin.succ) && defined?(other.begin.succ) && defined?(other.end) && defined?(other.exclude_end?))
+    if ! t_or_f
+      return(self == other)	# succ() for begin is not defined.
+    else
+      # Checking the begins.
+      if defined?(other.exclude_begin?) && other.exclude_begin?	# The other is RangeExtd with exclude_begin?==true.
+        if self.begin != other.begin.succ
+          return false
+        else
+          # Pass
+        end
+      elsif (self.begin != other.begin)
+        return false
+      end
+
+      # Now, the begins agreed.  Checking the ends.
+      if (self.end == other.end)
+        if (exclude_end? ^! other.exclude_end?)
+          return true
+        else
+          return false
+        end
+      else	# if (self.end == other.end)
+        if (exclude_end? ^! other.exclude_end?)
+          return false
+        elsif (      exclude_end? && defined?(other.end.succ) && (self.end == other.end.succ)) ||
+              (other.exclude_end? && defined?( self.end.succ) && (self.end.succ == other.end))
+          return true
+        else
+          return false
+        end
+      end	# if (self.end == other.end)
+    end	# if ! t_or_f
+
+  end	# def equiv?(other)
+
 
   ############## pravate methods of Range ##############
 

@@ -1,4 +1,8 @@
 -----
+(Version: 0.4.0) 2014-05-10
+ * Added Range#equiv? method.
+
+-----
 (Version: 0.3.0) 2014-05-02
  * Fixed a bug that RangeExtd used to accept (nil...nil,true).  Not any more.
  * Added two class methods in RangeExtd: middle_strings=() and middle_strings().

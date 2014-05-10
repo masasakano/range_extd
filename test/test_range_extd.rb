@@ -1122,6 +1122,85 @@ return
     end	# def test_Range_nullfunc
 
 
+    def test_Range_equiv
+      r1 = (2..5)
+      r2 = (2...7)
+      assert !r1.equiv?("Q") 
+      assert !r1.equiv?(2.0..3.1) 
+      assert  r1.equiv?(2.0..5.0) 
+      assert  (2.0..5.0).equiv?(r1) 
+      assert  (2.0..5.0).equiv?(2.0..5.0)
+      assert !r1.equiv?(RangeExtd(2..5,true)) 
+      assert !r1.equiv?(1..5) 
+      assert  r1.equiv?(2..5) 
+      assert  r2.equiv?(2...7) 
+      assert  r1.equiv?(RangeExtd(1..5,true)) 
+      assert !r1.equiv?(2...5) 
+      assert !r2.equiv?(2..7) 
+      assert !r1.equiv?(2..6) 
+      assert !r2.equiv?(2...8) 
+      assert  r1.equiv?(2...6) 
+      assert  r1.equiv?(RangeExtd(1...6,true)) 
+      assert  r2.equiv?(2..6) 
+      assert  r2.equiv?(RangeExtd(1..6,true)) 
+      assert !r1.equiv?(2...9) 
+      assert !r2.equiv?(2..9) 
+      assert !r1.equiv?(RangeExtd(1...9,true)) 
+      assert !r2.equiv?(RangeExtd(1..9,true)) 
+      assert  (3...7.0).equiv?(3..6)    # Because begin.succ is defined.
+      assert !(3...7.0).equiv?(3.0..6)  # Because begin.succ is not defined.
+    end	# def test_Range_equiv
+
+
+    def test_RangeExtd_equiv
+      r1 = RangeExtd(2..5)
+      r2 = RangeExtd(2...7)
+      r3 = RangeExtd(2..5,true)
+      r4 = RangeExtd(2...7,true)
+      assert !r1.equiv?("Q")
+      assert !r1.equiv?(2.0..3.1)
+      assert  r1.equiv?(2.0..5.0)
+      assert  (2.0..5.0).equiv?(r1)
+      assert  (2.0..5.0).equiv?(2.0..5.0)
+      assert  r2.equiv?(2.0...7.0)
+      assert  r4.equiv?(RangeExtd(2.0...7.0,true))
+      assert !r1.equiv?(RangeExtd(2..5,true))
+      assert !r2.equiv?(r4)
+      assert !r3.equiv?(2..5)
+      assert !r4.equiv?(2...7)
+      assert !r1.equiv?(1..5) 
+      assert !r3.equiv?(RangeExtd(1..5,true)) 
+      assert !r1.equiv?(RangeExtd(4..5,true))
+      assert !r3.equiv?(4..5) 
+      assert  r1.equiv?(2..5)
+      assert  r2.equiv?(2...7)
+      assert  r1.equiv?(RangeExtd(1..5,true))
+      assert  r2.equiv?(RangeExtd(1...7,true))
+      assert  r3.equiv?(3..5)
+      assert  r4.equiv?(3...7)
+      assert !r1.equiv?(RangeExtd(1...5,true))
+      assert !r2.equiv?(RangeExtd(1..7,true))
+      assert !r3.equiv?(3...5)
+      assert !r4.equiv?(3..7)
+      assert !r1.equiv?(2..9)
+      assert !r1.equiv?(RangeExtd(1..9,true))
+      assert !r2.equiv?(RangeExtd(1...9,true))
+      assert !r3.equiv?(3..9)
+      assert !r4.equiv?(3...9)
+      assert  r1.equiv?(2...6)
+      assert  r1.equiv?(RangeExtd(1...6,true))
+      assert  r2.equiv?(RangeExtd(1..6,true))
+      assert  r3.equiv?(3...6)
+      assert  r4.equiv?(3..6)
+      assert !r4.equiv?(3.0..6.0)
+      assert !r1.equiv?(2...9)
+      assert !r1.equiv?(RangeExtd(1...9,true))
+      assert !r2.equiv?(RangeExtd(1..9,true))
+      assert !r3.equiv?(3...9)
+      assert !r4.equiv?(3..9)
+    end	# def test_RangeExtd_equiv
+
+
     def test_RangeExtd_none
       assert  RangeExtd::NONE.is_none?
       assert  RangeExtd::NONE.valid?
@@ -1270,6 +1349,14 @@ return
       assert !((?a..?z) === "cc")
       assert !((?B..?z) === 'dd')
 
+      # RangeExtd#equiv?
+      assert  RangeExtd(2...7,true).equiv?(3..6)     # => true
+      assert !RangeExtd(2...7,true).equiv?(3..6.0)   # => false
+      assert !RangeExtd(2...7,true).equiv?(3.0..6.0) # => false
+      assert !RangeExtd(2...7,true).equiv?(3..6.5)   # => false
+      assert  RangeExtd(2...7,true).equiv?(RangeExtd(2.0...7.0,true))   # => true
+      assert  RangeExtd(2...7,true).equiv?(3...7.0)  # => true
+
       # RangeExtd#eql?bsearch
       ary = [0, 4, 7, 10, 12]
       assert_equal nil, (3...4).bsearch{    |i| ary[i] >= 11}
@@ -1384,12 +1471,12 @@ return
       assert_equal "2...6",  RangeExtd(2...6).to_s
       assert_equal "2<..6",  RangeExtd(2,6,1).to_s
 
-      # Range.==
+      # Range#==
       assert !(1...1).valid?
       assert !(nil...nil).valid?
       assert !((1...1) == RangeExtd(1, 1, true, true))	# => false.
 
-      # Range.valid?
+      # Range#valid?
       assert !(nil..nil).valid? # => false
       assert  (0..0).valid?     # => true
       assert !(0...0).valid?    # => false
@@ -1399,7 +1486,7 @@ return
       assert  RangeExtd::NONE.valid?        # => true
       assert  RangeExtd::ALL.valid?  # => true
 
-      # Range.empty?
+      # Range#empty?
       assert_equal nil, (nil..nil).empty?  # => nil
       assert_equal nil, (1...1).empty?     # => nil
       assert !(1..1).empty?      # => false
@@ -1408,6 +1495,15 @@ return
       assert !RangeExtd(1.0...2, true).empty? # => false
       assert  RangeExtd(?a...?b, true).empty? # => true
       assert  RangeExtd::NONE.empty?          # => true
+
+      # Range#equiv?
+      assert  (3...7).equiv?(3..6)      # => true
+      assert !(3...7).equiv?(3..6.0)    # => false
+      assert !(3...7).equiv?(3.0..6.0)  # => false
+      assert !(3...7).equiv?(3.0..6.5)  # => false
+      assert  (3...7).equiv?(3.0...7.0) # => false
+      assert  (3...7.0).equiv?(3..6)    # => true
+      assert !(3...7.0).equiv?(3.0..6)  # => false
 
       # class Infinity
       assert_equal  -1, (?z <=> RangeExtd::Infinity::POSITIVE)
