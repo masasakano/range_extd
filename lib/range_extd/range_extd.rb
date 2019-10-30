@@ -62,6 +62,12 @@ class RangeExtd < Range
 
   @@middle_strings = []
 
+  # Error messages
+  ERR_MSGS = {
+    infinity_compare: 'Float::INFINITY is not mathematically comparable with another Infinity.',
+  }
+  private_constant :ERR_MSGS
+
   # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
   #  If there is any duplication, those specified in the optional hash have the highest
   #  priority.  Then the two descrete Boolean parameters have the second.
@@ -103,9 +109,18 @@ class RangeExtd < Range
   #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
   # Note if you use the third form with "string_form" with the user-defined string
-  # (via {RangeExtd.middle_strings=}()), make 100 per cent sure
-  # of what you are doing.  If the string is ambiguous, the result may differ
+  # (via {RangeExtd.middle_strings=}()), make 100 per cent sure you know
+  # what you are doing.  If the string is ambiguous, the result may differ
   # from what you thought you would get!  See {RangeExtd.middle_strings=}() for detail.
+  # Below are a couple of examples:
+  #
+  #   RangeExtd.new(5, '....', 6)      # => RangeError because (5..("....")) is an invalid Range.
+  #   RangeExtd.new("%", '....', "y")  # => ("%" <.. "....")
+  #                                    #   n.b., "y" is interpreted as TRUE for
+  #                                    #   the flag for "exclude_begin?"
+  #   RangeExtd.new("x", '....', "y")  # => RangeError because ("x" <..("....")) is an invalid RangeExte,
+  #                                    #   in the sense String "...." is *smaller* than "x"
+  #                                    #   in terms of the "<=>" operator comparison.
   #
   # @raise [ArgumentError] particularly if the range to be created is not {#valid?}.
   def initialize(*inar, **hsopt)	# **k expression from Ruby 1.9?
@@ -118,8 +133,9 @@ class RangeExtd < Range
       return
     end
 
-    # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
-    arout = RangeExtd.class_eval{ _get_init_args(*inar, hsopt) }	# class_eval from Ruby 1.8.7 (?)
+    # Note: the order of exclude_begin? and end? is reversed from the input!
+    arout = RangeExtd.send(:_get_init_args, *inar, hsopt)
+    # == [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
 
     ### The following routine is obsolete.
     ### Users, if they wish, should call RangeExtd::Infinity.overwrite_compare() beforehand.
@@ -151,7 +167,7 @@ class RangeExtd < Range
     # end
 
     if ! RangeExtd.valid?(*arout)
-      raise ArgumentError, "the argument can not consist of a RangeExtd instance."
+      raise RangeError, "the combination of the arguments does not constitute a valid RangeExtd instance."
     end
 
     @exclude_begin = arout.pop
@@ -820,6 +836,8 @@ class RangeExtd < Range
   ##################################################
 
   # Private class method to evaluate the arguments.
+  #
+  # @raise [ArgumentError] if the input format is invalid (otherwise the caller may raise RangeError (it depends))
   def self._get_init_args(*inar, **hsopt)
     nMin = 1; nMax = 5
     if inar.size < nMin || nMax < inar.size
@@ -875,11 +893,11 @@ class RangeExtd < Range
       # Now, checking if the form is the String one, and if so, process it.
       arMid = @@middle_strings.map{|i| Regexp.quote(i)}	# See self.middle_strings=(ary) for description.
 
-      # Originally, defined?(inar[1].=~) seemed enough.  But as of Ruby 2.6,
+      # Originally, defined?(inar[1].=~) seemed enough.  But as of Ruby 2.6 (maybe even before),
       # Numeric has :=~ method as well!
-      if inar.size > 2 &&
-         inar[1].class.method_defined?(:=~) &&
-         inar[1].class.method_defined?(:to_str)
+      if (inar.size > 2 &&
+          inar[1].class.method_defined?(:=~) &&
+          inar[1].class.method_defined?(:to_str))
         begin
           cmp = (inar[0] <=> inar[2]).abs
         rescue
@@ -934,7 +952,6 @@ class RangeExtd < Range
     if hsopt.has_key?(:exclude_end)
       exclude_end   = (hsopt[:exclude_end] && true)
     end
-
     # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
     beginend + [exclude_end, exclude_begin]
 
@@ -954,13 +971,17 @@ class RangeExtd < Range
   #
   # What is valid is defined as follows:
   #
-  # 1. Both {#begin} and {#end} elements must be Comparable to each other,
+  # 1. The {#begin} and {#end} elements must be Comparable to each other,
   #    and the comparison results must be consistent betwen the two.
-  #    The sole exception is {RangeExtd::NONE}, which is valid.
+  #    The two sole exceptions are {RangeExtd::NONE} and Endless Range
+  #    introduced in Ruby 2.6 (see below for the exceptions), both of which are valid.
   #    For example, (nil..nil) is NOT valid (nb., it raised Exception in Ruby 1.8).
-  # 2. {#begin} must be smaller than or equal to {#end},
+  # 2. Except for {RangeExtd::NONE}, {#begin} must have the method +<=+.
+  #    Therefore, some Endless Ranges (Ruby 2.6 and upwards) like (true..) are *not* valid.
+  #    Note even "true" has the method +<=>+ and hence checking +<=+ is essential.
+  # 3. {#begin} must be smaller than or equal to {#end},
   #    that is, ({#begin} <=> {#end}) must be either -1 or 0.
-  # 3. If {#begin} is equal to {#end}, namely, ({#begin} <=> {#end}) == 0,
+  # 4. If {#begin} is equal to {#end}, namely, ({#begin} <=> {#end}) == 0,
   #    the exclude status of the both ends must agree.
   #    That is, if the {#begin} is excluded, {#end} must be also excluded,
   #    and vice versa.
@@ -981,6 +1002,8 @@ class RangeExtd < Range
   #    RangeExtd.valid?(nil...nil)    # => false
   #    RangeExtd.valid?(0..0)         # => true
   #    RangeExtd.valid?(0...0)        # => false
+  #    RangeExtd.valid?(0...)         # => true
+  #    RangeExtd.valid?(true..)       # => false
   #    RangeExtd.valid?(0..0,  true)  # => false
   #    RangeExtd.valid?(0...0, true)  # => true
   #    RangeExtd.valid?(2..-1)        # => false
@@ -998,13 +1021,13 @@ class RangeExtd < Range
   #  in the parameter are used.  In default, both of them are false.
   #
   # @overload new(range, [exclude_begin=false, [exclude_end=false]])
-  #   @param [Object] range Instance of Range or its subclasses, including RangeExtd
+  #   @param range [Object] Instance of Range or its subclasses, including RangeExtd
   #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
   #
   # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
   #   @param obj_begin [Object] Any object that is {Comparable} with end
-  #   @param obj_end [Object] Any object that is Comparable with begin
+  #   @param obj_end [Object] Any object that is Comparable with begin (or nil, for Ruby 2.6 onwards)
   #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
   #
@@ -1014,15 +1037,23 @@ class RangeExtd < Range
     if defined?(inar[0].is_none?) && inar[0].is_none? && exc_beg && exc_end
       return true
     end
-      
     begin
       t = (vbeg <=> vend)
       begin
+        if vend.nil?
+          begin
+            _ = (vbeg..nil)  # Endless Range introduced in Ruby 2.6
+            return vbeg.class.method_defined?(:<=)
+          rescue ArgumentError
+            # Before Ruby 2.6
+            return false
+          end
+        end
         return false if t != -1*(vend <=> vbeg)	# false if not commutative, or possibly exception (such as -1*nil).
       rescue NoMethodError, TypeError
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
-          warn "Float::INFINITY is not comparable with other Infinity."
+          warn self.const_get(:ERR_MSGS)[:infinity_compare]  # one of the tests comes here.
         end
         return false	# return
       end
@@ -1043,7 +1074,7 @@ class RangeExtd < Range
       else
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
-          warn "Float::INFINITY is not comparable with other Infinity."
+          warn self.const_get(:ERR_MSGS)[:infinity_compare]  # not tested so far?
         end
         false	# Not Comparable.
       end	# case t

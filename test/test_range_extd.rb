@@ -250,6 +250,17 @@ gem "minitest"
       assert_equal RangeExtd::Infinity::NEGATIVE, r.begin
     end	# def test_rangeextd_new_infinity_c3
 
+    def test_get_init_args
+      begin
+        _ = (0..nil)
+      rescue ArgumentError
+        return  # Before Ruby 2.6
+      end
+      arout = RangeExtd.class_eval{ _get_init_args(3, nil) }	# class_eval from Ruby 1.8.7 (?)
+      assert_equal [3, nil, F, F], arout
+      arout = RangeExtd.class_eval{ _get_init_args(3, nil, F, T) }  # true == exclude_end?
+      assert_equal [3, nil, T, F], arout
+    end
 
     def test_new
       e22 = RangeExtd.new(@s22)
@@ -281,6 +292,28 @@ gem "minitest"
       assert  j22.exclude_end?
       assert_equal(-@ie, j22.begin)
       assert_equal(-@ib, j22.end)
+    end
+
+    def test_new_endless_range01
+      ra00 = (-2..)
+      rae0 = RangeExtd.new(ra00)
+      assert rae0.valid?
+      assert_equal(-2,  rae0.begin)
+      assert_nil        rae0.end
+      assert_equal Float::INFINITY,   rae0.size
+      assert_equal ra00.exclude_end?, rae0.exclude_end?
+      refute                          rae0.exclude_begin?
+    end
+
+    def test_new_endless_range02
+      ra00 = (Float::INFINITY...)
+      rae0 = RangeExtd.new(ra00)
+      assert rae0.valid?
+      assert_equal Float::INFINITY,   rae0.begin
+      assert_nil        rae0.end
+      assert_equal Float::INFINITY,   rae0.size
+      assert_equal ra00.exclude_end?, rae0.exclude_end?
+      refute                          rae0.exclude_begin?
     end
 
     def test_new_middle_strings
@@ -339,9 +372,21 @@ gem "minitest"
       assert_equal(-@ie, m22.begin)
       assert_equal(-@ib, m22.end)
 
-      assert_raises(ArgumentError){ RangeExtd.new(@ib, '....', @ie) }	# => the argument can not consist of a RangeExtd instance.
+      assert_raises(RangeError){ RangeExtd.new(@ib, '....', @ie) }	# => the combination of the arguments does not constitute a valid RangeExtd instance.
+        # Basically, for @ib, @ie == [1, 6],
+        # the user may intend to write "1....6", but it is interpreted as
+        #   ((1..("....")), exclude_begin: (!!6))
+        # hence it is RangeError (as opposed to ArgumentError)
+
+      rt0 = RangeExtd.new("%", '....', "y")
+      assert_equal "%",    rt0.begin
+      assert_equal '....', rt0.end
+      assert               rt0.exclude_begin?
+      refute               rt0.exclude_end?
+
       RangeExtd.middle_strings = :math
-      assert_raises(ArgumentError){ RangeExtd.new(@ib, '..', @ie) }	# => the argument can not consist of a RangeExtd instance.
+      assert_raises(RangeError){ RangeExtd.new(@ib, '..', @ie) }	# => the combination of the arguments does not constitute a valid RangeExtd instance.
+
       RangeExtd.middle_strings = :default
       assert_raises(ArgumentError){ RangeExtd.new(@ib, '..', @ie, T, nil, T) }	# => wrong number of arguments (6 for 1..5)
       assert_raises(ArgumentError){ RangeExtd.new(@ib, @ie, T, nil, T) }	# => wrong number of arguments (5 for 2..4)
@@ -354,6 +399,7 @@ gem "minitest"
 
     def test_new_invalid
       ae = ArgumentError
+      re = RangeError
       # Wrong number of parameters
       assert_raises(ae){ RangeExtd() }
       assert_raises(ae){ RangeExtd(1,2,3,4,5) }
@@ -362,39 +408,39 @@ gem "minitest"
       assert_raises(ae){ RangeExtd(1..1,2,3,{},5) }
 
       # Wrong range (Object input)
-      assert_raises(ae){ RaE(2, -1) }
-      assert_raises(ae){ RaE(nil, nil) }
-      assert_raises(ae){ RaE(nil, false) }
-      assert_raises(ae){ RaE(?d..?a) }
-      assert_raises(ae){ RaE(?a, 5) }
-      assert_raises(ae){ RaE(0, 0, true, false) }
-      assert_raises(ae){ RaE(0, 0, nil,  1) }
+      assert_raises(re){ RaE(2, -1) }
+      assert_raises(re){ RaE(nil, nil) }
+      assert_raises(re){ RaE(nil, false) }
+      assert_raises(re){ RaE(?d..?a) }
+      assert_raises(re){ RaE(?a, 5) }
+      assert_raises(re){ RaE(0, 0, true, false) }
+      assert_raises(re){ RaE(0, 0, nil,  1) }
       assert_equal RangeExtd::NONE, RaE(0, 0, true, true)
       assert_equal RangeExtd::NONE, RaE(?a, ?a, true, true)
       assert_equal (0..0), RaE(0, 0, false, false)
 
       # Wrong range (Infinity input)
-      assert_raises(ae){ RaE(?a, RangeExtd::Infinity::NEGATIVE) }
+      assert_raises(re){ RaE(?a, RangeExtd::Infinity::NEGATIVE) }
       assert_equal (RangeExtd::Infinity::NEGATIVE..?a),  RaE(RangeExtd::Infinity::NEGATIVE, ?a)
       assert_equal (RangeExtd::Infinity::NEGATIVE...?a), RaE(RangeExtd::Infinity::NEGATIVE, ?a, nil, 3)
       assert_equal (?a..RangeExtd::Infinity::POSITIVE),  RaE(?a, RangeExtd::Infinity::POSITIVE)
       assert_equal RangeExtd, RaE(?a, RangeExtd::Infinity::POSITIVE, 1).class
-      assert_raises(ae){ RaE(RangeExtd::Infinity::NEGATIVE,  Float::INFINITY) }	# Float::INFINITY is an exception - you should not mix it up.
-      assert_raises(ae){ RaE(-Float::INFINITY, RangeExtd::Infinity::POSITIVE) }	# Float::INFINITY is an exception - you should not mix it up.
-      assert_raises(ae){ RaE(RangeExtd::Infinity::POSITIVE, ?a) }
-      assert_raises(ae){      RaE(RangeExtd::Infinity::POSITIVE, RangeExtd::Infinity::NEGATIVE) }
+      assert_raises(re){ RaE(RangeExtd::Infinity::NEGATIVE,  Float::INFINITY) }	# Float::INFINITY is an exception - you should not mix it up.
+      assert_raises(re){ RaE(-Float::INFINITY, RangeExtd::Infinity::POSITIVE) }	# Float::INFINITY is an exception - you should not mix it up.
+      assert_raises(re){ RaE(RangeExtd::Infinity::POSITIVE, ?a) }
+      assert_raises(re){      RaE(RangeExtd::Infinity::POSITIVE, RangeExtd::Infinity::NEGATIVE) }
       assert_equal RangeExtd, RaE(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).class
-      assert_raises(ae){ RaE(RangeExtd::Infinity::NEGATIVE, 0, false, false) }	# For Numeric, you should use -Float::INFINITY
-      assert_raises(ae){ RaE(0, RangeExtd::Infinity::POSITIVE, false, false) }	# For Numeric, you should use  Float::INFINITY
+      assert_raises(re){ RaE(RangeExtd::Infinity::NEGATIVE, 0, false, false) }	# For Numeric, you should use -Float::INFINITY
+      assert_raises(re){ RaE(0, RangeExtd::Infinity::POSITIVE, false, false) }	# For Numeric, you should use  Float::INFINITY
       assert_equal RangeExtd, RaE(RangeExtd::Infinity::NEGATIVE, ?a, false, false).class
       assert_equal RangeExtd, RaE(?a, RangeExtd::Infinity::POSITIVE, false, false).class
       # assert_raises(ae){ RaE(RangeExtd::Infinity::NEGATIVE, ?a, true) }	#### No exception.  Is it OK???
       # assert_raises(ae){ RaE(?a, RangeExtd::Infinity::POSITIVE, nil, 1) }	#### No exception.  Is it OK???
 
       # Wrong range (Range input)
-      assert_raises(ae){ RangeExtd(2..-1) }
-      assert_raises(ae){ RangeExtd(nil..nil) }
-      assert_raises(ae){ RangeExtd(?d..?a) }
+      assert_raises(re){ RangeExtd(2..-1) }
+      assert_raises(re){ RangeExtd(nil..nil) }
+      assert_raises(re){ RangeExtd(?d..?a) }
 
       # Range with contradictory boundary
       assert_equal ?a..?e,  RaE(?a...?e, nil, nil)
@@ -402,10 +448,19 @@ gem "minitest"
       assert_equal ?a..?a,  RaE(?a...?a, nil, nil)
       assert_equal RangeExtd::NONE, RaE(?a...?a, 1, 1)
       assert_equal RangeExtd::NONE, RaE(?a..?b,  1, 1)
-      assert_raises(ae){ RaE(?a..?a, true, nil) }
-      assert_raises(ae){ RaE(?a..?a,  nil,   1) }
+      assert_raises(re){ RaE(?a..?a, true, nil) }
+      assert_raises(re){ RaE(?a..?a,  nil,   1) }
     end
 
+    def test_new_invalid_endless_range01
+      ra00 = (nil..)
+      refute RangeExtd.valid?(ra00)
+      assert_raises(RangeError){ RangeExtd.new(ra00) }
+
+      ra01 = (true..)
+      refute RangeExtd.valid?(ra01)
+      assert_raises(RangeError){ RangeExtd.new(ra01) }
+    end
 
     def test_new_exclude_begin_end
       # Form 1: 1 parameters
@@ -502,10 +557,10 @@ gem "minitest"
       assert_raises ArgumentError do
         RangeExtd.new(5)
       end
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd.new(nil,5)
       end
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd.new(nil,5,true)
       end
     end	# def test_exclude_begin
@@ -638,7 +693,7 @@ gem "minitest"
       assert_equal(@ib+1, @s21.first(1)[0])
       assert_equal(@ib+1, @s22.first(1)[0])
 
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd(9, 3, true)
       end
       assert_raises ArgumentError do
@@ -670,7 +725,7 @@ gem "minitest"
       end
 
       ## Else
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd.new(nil..nil, true)
       end
 
@@ -898,11 +953,11 @@ gem "minitest"
       inf = Float::INFINITY
       excl_ini = true
       assert_equal inf, RangeExtd(-inf, 1).size
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd(-inf, -inf, excl_ini)	# exclde_begin yet !exclude_end
       end
       assert_equal inf, RangeExtd(-inf,    1, excl_ini).size
-      assert_raises ArgumentError do
+      assert_raises RangeError do
         RangeExtd( inf,  inf, excl_ini)	# exclde_begin yet !exclude_end
       end
       assert_equal inf, RangeExtd(   1,  inf, excl_ini).size
@@ -1058,6 +1113,17 @@ gem "minitest"
       assert  RangeExtd(RangeExtd::Infinity::NEGATIVE..?b).valid?
     end		# def test_Range_valid
 
+    # For Ruby 2.6 and onwards
+    def test_endlessRange_valid
+      assert  (0..).valid?
+      assert  (0...).valid?
+      refute  (true..).valid?
+      refute  (nil...).valid?
+      refute  (nil..nil).valid?
+      assert   (Float::INFINITY..Float::INFINITY).valid?
+      assert  (-Float::INFINITY..Float::INFINITY).valid?
+      assert  (-Float::INFINITY...Float::INFINITY).valid?
+    end
 
     def test_Range_empty
       assert  RangeExtd::NONE.empty?

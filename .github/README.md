@@ -62,11 +62,17 @@ per cent trivial.  The definition I adopt for the behaviour of RangeExtd is
 probably not the only solution.  Personally, I am content with it, and I think
 it achieves the good logical completeness within the frame.
 
-I hope you find it to be useful.
+I hope you find this package to be useful.
+
+### News: Endless Range supported
+
+Now, as of 2019 October, this fully supports [Endless
+Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+introduced in Ruby 2.6.  It is released as Version 1.0 finally!
 
 #### NOTE: Relationship with Rangesmaller
 
-This package supercedes the obsolete
+This package supersedes the obsolete
 [Rangesmaller](https://rubygems.org/gems/rangesmaller) package and class, with
 the added open-ended feature, and a different interface in creating a new
 instance. https://rubygems.org/gems/rangesmaller
@@ -75,7 +81,7 @@ instance. https://rubygems.org/gems/rangesmaller
 
 The class to handle multiple Ranges with objects of the same class (most
 typically Float), [Rangeary](https://rubygems.org/gems/rangeary) uses this
-library to fullest, because the concept of potentially open-ended Range ato
+library to fullest, because the concept of potentially open-ended Range on
 both begin and end is essential to realise Rangeary.
 https://rubygems.org/gems/rangeary
 
@@ -170,7 +176,8 @@ All the methods that are in the built-in Range can be used.
 
 ## Description
 
-Once the file range_extd.rb is required, the two classes are defined:
+Once the file `range_extd/range_extd.rb` is required, the two classes are
+defined:
 
 *   RangeExtd
 *   RangeExtd::Infinity
@@ -205,7 +212,16 @@ with those two constants, as long as the cmp method of the class is written
 politely.
 
 For more detail, see its documents (YARD or RDoc-style documents embedded in
-the code, or see RubyGems webpage).
+the code, or see [RubyGems webpage](http://rubygems.org/gems/range_extd)).
+
+***Note*** `RangeExtd::Infinity::POSITIVE` is practically the same as [Endless
+Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+introduced in Ruby 2.6 released in 2018 December!!  In other words, the
+official Ruby has finally implement a part of this library! However,
+`RangeExtd::Infinity::NEGATIVE` is not yet implemented in the official Ruby
+Range (it has no "boundless begin"), and hence this library still has some
+use, which supplements the mathematical incompleteness of the standard Range
+in the official Ruby.
 
 ### RangeExtd Class
 
@@ -297,18 +313,13 @@ requiring this library would not affect any existing code in principle.
 
 ## Known bugs
 
-*   As of Ruby 2.6, [Endless
-    Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range
-    -1) is introduced.  As a result, Range#end sometimes raises RangeError.
-    However, this library does not yet take it into account, and it may raises
-    Exception when encountering an endless Range.
 *   Note this library does not work in Ruby 1.8 or earlier. For Ruby 1.9.3 it
     is probably all right, though I have never tested it.
 *   Some unusual (rare) boundary conditions are found to vary from version to
-    version in Ruby, such as a comparison between Float::INFINITY-s.  Though
-    the test scripts are pretty extensive, they have not been performed over
-    many different versions of Ruby. In some versions, some features may not
-    work well, although such occasions should be very rare.
+    version in Ruby, such as an implementation of +Hash#=>+. Though the test
+    scripts are pretty extensive, they have not been performed over many
+    different versions of Ruby. Hence, some features may not work well in some
+    particular versions, although such cases should be very rare.
 *   {RangeExtd#hash} method does not theoretically guarantee to return a
     unique number for a {RangeExtd} object, though to encounter a hash number
     that is used elsewhere is extremely unlikely to happen in reality.
@@ -318,10 +329,7 @@ Extensive tests have been performed, as included in the package.
 
 ## ToDo
 
-*   Handle the Ruby-2.6 new feature [Endless
-    Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range
-    -1).
-
+Nothing on the horizon.
 
 ## Final notes
 
@@ -363,6 +371,7 @@ Versions
     http://semver.org/
 
 
+---
 
 # RangeExtd - 拡張Rangeクラス - exclude_begin と無限大に開いた範囲と
 
@@ -417,6 +426,12 @@ RangeExtdクラスの定義は、おそらく、考え られる唯一のもの�
 したし、このレンジという枠内での論理的完全性をうまく達成できたと思います。
 
 このクラスが少なからぬ人に有用なものであることを願ってここにリリースします。
+
+### News: Endless Range サポートしました
+
+2019年10月より、本パッケージは、Ruby 2.6 で導入された [Endless
+Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+(終端のない Range)を正式サポートしました。よって、Version 1.0 をリリースしました!
 
 #### 注: Rangesmallerとの関係
 
@@ -518,7 +533,7 @@ https://rubygems.org/gems/rangeary
 
 ## 詳説
 
-ファイル range_extd.rb が読まれた段階で、次の二つのクラスが定義されます。
+ファイル `range_extd/range_extd.rb` が読まれた段階で、次の二つのクラスが定義されます。
 
 *   RangeExtd
 *   RangeExtd::Infinity
@@ -547,8 +562,16 @@ https://rubygems.org/gems/rangeary
 ユーザー定義のどの Comparable なクラスに属するどのオブジェクトも、これら二定数と
 可換的に比較可能です。その際、同クラスに置ける比較メソッドがマナー良く書かれてあ る、という前提で。
 
-さらに詳しくは、マニュアルを参照して下さい(YARD　または RDoc形式で書かれた文書が コード内部に埋込まれていますし、それが
-RubyGemsのウェブサイトでも閲覧できます。
+さらに詳しくは、マニュアルを参照して下さい(YARD　または RDoc形式で書かれた文書が
+コード内部に埋込まれていますし、[RubyGemsのウェブサイト](http://rubygems.org/gems/range_extd)でも閲覧できます
+。
+
+**(注)** `RangeExtd::Infinity::POSITIVE` は、 2018年12月に公式リリースされたRuby 2.6で導入された
+[Endless
+Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+(終端のないRange)で実用上同一です!! 言葉を替えれば、公式Rubyがついに本 ライブラリの一部をサポートしました! ただし、公式Rubyには、
+`RangeExtd::Infinity::NEGATIVE` は依然ありません(始端のないRangeがない)。
+本ライブラリにより、組込Rangeに欠けている数学的不完全性を補うことができます。
 
 ### RangeExtd クラス
 
@@ -627,10 +650,6 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 
 ## 既知のバグ
 
-*   Ruby 2.6 では、後ろに無限に開いたRange([Endless
-    Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range
-    -1)) が導入されました。本ライブラリでは、まだそれには対応していません。 したがって、Endless
-    Rangeを本クラスに適用した場合、問題が起きるでしょう。
 *   このライブラリは Ruby 1.8 およびそれ以前のバージョンでは動作しません。 Ruby 1.9.3
     ではおそらく大丈夫でしょうが、私は試したことがありません。
 *   いくつかの極めて稀な境界条件に於ける挙動は、Rubyのバージョンごとにあ る程度変化しています。例えば、Float::INFINITY
@@ -647,10 +666,7 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 
 ## 開発項目
 
-*   Ruby 2.6の後ろに無限に開いたRange([Endless
-    Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range
-    -1))に対応する。
-
+特になし。
 
 ## 終わりに
 

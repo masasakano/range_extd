@@ -1,4 +1,8 @@
 -----
+(Version: 1.0) 2019-10-30
+ * Release of Ver.1.0.  Supports Endless Range in Ruby 2.6.
+
+-----
 (Version: 0.4.0) 2014-05-10
  * Added Range#equiv? method.
 

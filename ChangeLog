@@ -1,4 +1,25 @@
 -----
+(Version: 1.0)
+2019-10-30  Masa Sakano
+  * Release of Ver.1.0.
+  * Endless Range introduced in Ruby 2.6 is now fully supported.
+  * RangeError is raised now when it is appropriate in initialisation, where ArgumentError used to be raised.
+
+-----
+(Version: 1.0)
+2019-10-30  Masa Sakano
+  * Release of Ver.1.0.
+  * Endless Range introduced in Ruby 2.6 is now fully supported.
+  * RangeError is raised now when it is appropriate in initialisation, where ArgumentError used to be raised.
+
+-----
+(Version: 1.0)
+2019-10-30  Masa Sakano
+  * Release of Ver.1.0.
+  * Endless Range introduced in Ruby 2.6 is now fully supported.
+  * RangeError is raised now when it is appropriate in initialisation, where ArgumentError used to be raised.
+
+-----
 (Version: 0.4)
 2019-10-30  Masa Sakano
   * Many minor bug fixes (mostly suppressing Warnings) to catch up with Ruby 2.6.
