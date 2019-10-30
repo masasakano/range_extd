@@ -114,7 +114,9 @@ class RangeExtd < Range
     end
 
     # Class that accept to be compared with Infinity instances.
-    CLASSES_ACCEPTABLE = [self, Float, Fixnum, Bignum, Rational, Numeric, String]	# , BigFloat
+    CLASSES_ACCEPTABLE = [self, Float, Integer, Rational, Numeric, String]  # Fixnum, Bignum deprecated now.
+    # CLASSES_ACCEPTABLE = [self, Float, Fixnum, Bignum, Rational, Numeric, String]	# , BigFloat
+    CLASSES_ACCEPTABLE.push BigFloat if defined? BigFloat
 
     def infinity?
       true
@@ -128,7 +130,7 @@ class RangeExtd < Range
       !@positive 
     end
 
-    alias :cmp_before_rangeextd_infinity? :==  if ! self.method_defined?(:cmp_before_rangeextd_infinity?)	# No overwriting.
+    alias_method :cmp_before_rangeextd_infinity?, :==  if ! self.method_defined?(:cmp_before_rangeextd_infinity?)	# No overwriting.
 
     # Always -1 or 1 except for itself and the corresponding infinities (== 0).  See {#==}.
     # Or, nil (as defined by Object), if the argument is not Comparable, such as, nil and IO.
@@ -189,7 +191,7 @@ class RangeExtd < Range
       end
     end
   
-    alias :to_s :inspect
+    alias_method :to_s, :inspect
   
 
   # Overwrite [#<=>] method of the given class, if necessary,
@@ -225,7 +227,7 @@ class RangeExtd < Range
       klass = obj.class
 
       begin
-        1.0 + obj	# Use  "rescue ArgumentError"  if using "1.0<obj"
+        _ = 1.0 + obj	# Use  "rescue ArgumentError"  if using "1.0<obj"
         return nil	# No change for Numeric
       rescue TypeError
       end
@@ -250,7 +252,7 @@ class RangeExtd < Range
       # Overwrite the definition of "<=>" so that it is fliped over for Infinity.
 
       code = <<__EOF__
-  alias :compare_before_infinity :==  if ! self.method_defined?(:compare_before_infinity)
+  alias_method :compare_before_infinity, :<=> if ! self.method_defined?(:compare_before_infinity)
   def <=>(c)
     if defined?(self.<=) && RangeExtd::Infinity === c
       if defined?(self.infinity?) && defined?(self.positive?)
@@ -322,7 +324,7 @@ end	# class RangeExtd < Range
 # aware of {RangeExtd::Infinity} objects (the two constants).
 #
 class Object
-  alias :compare_obj_before_infinity :==  if ! self.method_defined?(:compare_obj_before_infinity)	# No overwriting.
+  alias_method :compare_obj_before_infinity, :<=>  if ! self.method_defined?(:compare_obj_before_infinity)	# No overwriting.
 
   # Overwrite {Object#<=>}().  Then, all its sub-classes can be
   # aware of RangeExtd::Infinity objects (the two constants).

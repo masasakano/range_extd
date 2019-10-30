@@ -1,4 +1,11 @@
 -----
+(Version: 0.4)
+2019-10-30  Masa Sakano
+  * Many minor bug fixes (mostly suppressing Warnings) to catch up with Ruby 2.6.
+  * Because quite a few (boundary) behaviours have changed from previous versions a few years ago, such as the comparison between two INFINITY.
+  * Endless range not yet fully incorporated.
+
+-----
 (Version: 0.4.0)
 2014-05-10  Masa Saskano
  * Added Range#equiv? and RangeExtd#equiv? methods.

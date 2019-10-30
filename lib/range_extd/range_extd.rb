@@ -30,23 +30,6 @@ end	# req_files.each do |req_file|
 # Initial set up of 2 constants in RangeExtd.
 ########################################
 
-class RangeExtd < Range
-  ## Temporary initialize() just to define the two constants.
-  def initialize(rangepart, ex_begin, ex_end)
-    @rangepart = rangepart
-    @exclude_begin = ex_begin
-    @exclude_end   = ex_end
-  end
-
-  # Two constants
-  NONE = RangeExtd.new(nil...nil, true, true)	# In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
-  ALL  = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false)
-
-  #NONE.freeze
-  #ALL.freeze
-end
-
-
 # =Class RangeExtd
 #
 # Authors:: Masa Sakano
@@ -127,6 +110,15 @@ class RangeExtd < Range
   # @raise [ArgumentError] particularly if the range to be created is not {#valid?}.
   def initialize(*inar, **hsopt)	# **k expression from Ruby 1.9?
 
+    if inar[4] == :Constant
+      # Special case to create two Constants
+      super(*inar[0..2])
+      @rangepart = (inar[2] ? (inar[0]...inar[1]) : (inar[0]..inar[1]))
+      @exclude_end, @exclude_begin = inar[2..3]
+      return
+    end
+
+    # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
     arout = RangeExtd.class_eval{ _get_init_args(*inar, hsopt) }	# class_eval from Ruby 1.8.7 (?)
 
     ### The following routine is obsolete.
@@ -165,6 +157,7 @@ class RangeExtd < Range
     @exclude_begin = arout.pop
     @exclude_end   = arout[-1]
     @rangepart = Range.new(*arout)
+    super(*arout)
 
   end	# def initialize(*inar)
 
@@ -717,6 +710,10 @@ class RangeExtd < Range
   # in the range whereas 4.8 is not in the range by definition,
   # but not the example right above.
   #
+  # @note When both ends n are the same INFINITY (of the same parity),
+  #   +(n..n).size+ used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
+  #   This routine follows what Ruby produces, depending on Ruby's version it is run on.
+  #
   # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how {Range#size} behaves (in Japanese).
   #
   # @return [Integer]  0 if {RangeExtd::NONE}
@@ -747,7 +744,9 @@ class RangeExtd < Range
     elsif (defined?(self.begin.infinity?) && self.begin.infinity? || self.begin == -Infinity::FLOAT_INFINITY) ||
           (defined?(self.end.infinity?)   && self.end.infinity?   || self.end == Infinity::FLOAT_INFINITY)
       if self.begin == self.end
-        return 0
+        # This varies, depending on Ruby's version!  It used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
+        return (Float::INFINITY..Float::INFINITY).size
+        # return 0
       else
         return Infinity::FLOAT_INFINITY
       end
@@ -875,7 +874,12 @@ class RangeExtd < Range
 
       # Now, checking if the form is the String one, and if so, process it.
       arMid = @@middle_strings.map{|i| Regexp.quote(i)}	# See self.middle_strings=(ary) for description.
-      if inar.size > 2 && defined?(inar[1].=~)
+
+      # Originally, defined?(inar[1].=~) seemed enough.  But as of Ruby 2.6,
+      # Numeric has :=~ method as well!
+      if inar.size > 2 &&
+         inar[1].class.method_defined?(:=~) &&
+         inar[1].class.method_defined?(:to_str)
         begin
           cmp = (inar[0] <=> inar[2]).abs
         rescue
@@ -931,6 +935,7 @@ class RangeExtd < Range
       exclude_end   = (hsopt[:exclude_end] && true)
     end
 
+    # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
     beginend + [exclude_end, exclude_begin]
 
   end	# def self._get_init_args(*inar)
@@ -1244,6 +1249,15 @@ class RangeExtd < Range
     end
   end	# def re_min_max_core(method, *rest, &bloc)
 
+  # No range.
+  # In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
+  NONE = RangeExtd.new(nil, nil, true, true, :Constant)
+  #NONE = RangeExtd.new(nil...nil, true, true, :Constant)
+
+  # Range covers everything.
+  ALL  = RangeExtd.new(Infinity::NEGATIVE, Infinity::POSITIVE, false, false, :Constant)
+  #ALL  = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false, :Constant)
+
 end	# class RangeExtd < Range
 
 
@@ -1256,7 +1270,7 @@ end	# class RangeExtd < Range
 #
 class Range
 
-  alias :equal_prerangeextd? :==  if ! self.method_defined?(:equal_prerangeextd?)	# No overwriting.
+  alias_method :equal_prerangeextd?, :==  if ! self.method_defined?(:equal_prerangeextd?)	# No overwriting.
 
   # It is extended to handle {RangeExtd} objects.
   # For each element, that is, {#begin} and {#end},

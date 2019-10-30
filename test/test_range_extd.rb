@@ -7,8 +7,6 @@ arlibrelpath = []
 arlibbase = %w(range_extd range_extd/infinity)	# range_extd/infinity is actually loaded from range_extd.  But by writing here, the absolute path will be displayed.
 
 arlibbase.each do |elibbase|
-  elibbase
-
   arAllPaths = []
   er=nil
   pathnow = nil
@@ -52,7 +50,8 @@ end
 #################################################
 
 #if $0 == __FILE__
-  require 'minitest/unit'
+gem "minitest"
+# require 'minitest/unit'
   require 'minitest/autorun'
   # MiniTest::Unit.autorun
 
@@ -139,10 +138,10 @@ end
   def RaE(*rest)
     RangeExtd(*rest)
   end
-  T = true
-  F = false
 
   class TestUnitFoo < MiniTest::Unit::TestCase
+    T = true
+    F = false
     def setup
       @ib = 1
       @ie = 6
@@ -168,46 +167,49 @@ end
     end	# def test_object_compare
 
     def test_overwrite_compare
-      assert_equal nil, (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)
-      assert_equal nil, RangeExtd::Infinity.overwrite_compare(Numeric)
-      assert_equal nil, (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)	# no change
-      assert_equal nil, RangeExtd::Infinity.overwrite_compare(3)
-      assert_equal nil, (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)	# no change
+      assert_nil     (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)
+      assert_nil  RangeExtd::Infinity.overwrite_compare(Numeric)
+      assert_nil     (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)	# no change
+      assert_nil  RangeExtd::Infinity.overwrite_compare(3)
+      assert_nil     (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)	# no change
       assert_equal false, RangeExtd::Infinity.overwrite_compare(true)	# no change
       assert_equal  1, (RangeExtd::Infinity::POSITIVE <=> 's')
       assert_equal(-1, ('s' <=> RangeExtd::Infinity::POSITIVE))
       assert_equal(-1, (RangeExtd::Infinity::NEGATIVE <=> 's'))
       assert_equal  1, ('s' <=> RangeExtd::Infinity::NEGATIVE)
-      assert_equal nil, RangeExtd::Infinity.overwrite_compare('s')	# no change
+      assert_nil  RangeExtd::Infinity.overwrite_compare('s')	# no change
       assert_equal  1, (RangeExtd::Infinity::POSITIVE <=> 's')
       assert_equal(-1, ('s' <=> RangeExtd::Infinity::POSITIVE))
       assert_equal(-1, (RangeExtd::Infinity::NEGATIVE <=> 's'))
       assert_equal  1, ('s' <=> RangeExtd::Infinity::NEGATIVE)
-      assert_equal nil, (RangeExtd::Infinity::POSITIVE <=> [3,5])
-      assert_equal nil, ([3,5] <=> RangeExtd::Infinity::POSITIVE)	# no change
-      assert_equal nil, (defined? [3,5].compare_before_infinity)
+      assert_nil  RangeExtd::Infinity::POSITIVE <=> [3,5]
+      assert_nil  ([3,5] <=> RangeExtd::Infinity::POSITIVE)	# no change
+      assert_nil  (defined? [3,5].compare_before_infinity)
       assert_equal false, RangeExtd::Infinity.overwrite_compare([3,5])
-      assert_equal false, RangeExtd::Infinity.overwrite_compare(Hash)	# no change
+
+      # This used to give false; Hash#<= used to be undefined in old-version Ruby.
+      # But as of Ruby-2.6, it is defined!
+      assert_equal Hash.method_defined?(:<=), RangeExtd::Infinity.overwrite_compare(Hash)	# no change
+
       c = CLComparable.new
       assert_equal 'XXX', (c <=> 7)	# Defined in this code
-      assert_equal nil, (c <=> 1)	# Object#<=>
-      assert_equal nil, (c <=> RangeExtd::Infinity::POSITIVE)
+      assert_nil  (c <=> 1)	# Object#<=>
+      assert_nil  (c <=> RangeExtd::Infinity::POSITIVE)
       assert_raises(ArgumentError){ (c..RangeExtd::Infinity::POSITIVE) }	# => bad value for range
       assert_equal true, RangeExtd::Infinity.overwrite_compare(c)
       assert_equal(-1, (c <=> RangeExtd::Infinity::POSITIVE))
-return
       assert_equal  1, (c <=> RangeExtd::Infinity::NEGATIVE)
       assert_equal 'method', (defined? c.compare_before_infinity)	# Backup of the original
       assert_equal 'XXX', (c.compare_before_infinity(7))	# Preserved.
       assert_equal 'XXX', (c <=> 7)	# Preserved.
-      assert_equal nil, (c <=> 1)
-      assert_equal nil, (c <=> nil)
+      assert_nil  (c <=> 1)
+      assert_nil  (c <=> nil)
       assert_equal :<=>,  (c <=> 8)
     end
 
     def test_rangeextd_new_infinity_c2
       c2 = CLC2.new
-      assert_equal nil, (c2 <=> 1)	# Object#<=>
+      assert_nil  (c2 <=> 1)	# Object#<=>
       assert_equal(-1, (c2 <=> RangeExtd::Infinity::POSITIVE))
       assert_equal  1, (c2 <=> RangeExtd::Infinity::NEGATIVE)
       r=(c2..RangeExtd::Infinity::POSITIVE)
@@ -220,7 +222,7 @@ return
 
     def test_range_c3c4
       c3 = CLC3.new
-      assert_equal nil, (c3 <=> 1)	# Object#<=>
+      assert_nil          (c3 <=> 1)	# Object#<=>
       assert_equal 'XXX', (c3 <=> 7)	# Preserved.
 
       r8=(c3..8)
@@ -703,13 +705,6 @@ return
     end	# def test_each
 
 
-    def test_end
-      assert_equal(@ie,   @s11.end)
-      assert_equal(@ie,   @s12.end)
-      assert_equal(@ie,   @s21.end)
-      assert_equal(@ie,   @s22.end)
-    end
-
     def test_last	# Apparently it uses each() internally.
       assert_equal(@ie,   @s11.last)
       assert_equal(@ie-1, @s12.last(1)[0])
@@ -751,16 +746,16 @@ return
       # http://www.ruby-doc.org/core-2.1.1/Range.html#method-i-bsearch
 
       assert_equal(3,   RangeExtd(1..4).bsearch{   |i| ary[i] >=  9})	# (1..4).bsearch{|i| ary[i] >= 9} => 3
-      assert_equal(nil, RangeExtd(3...4).bsearch{  |i| ary[i] >= 11})
-      assert_equal(nil, RangeExtd(3.6...4).bsearch{|i| ary[i] >= 11})
+      assert_nil        RangeExtd(3...4).bsearch{  |i| ary[i] >= 11}
+      assert_nil        RangeExtd(3.6...4).bsearch{|i| ary[i] >= 11}
       assert_equal(4,   RangeExtd(3...5).bsearch{  |i| ary[i] >= 11})
       assert_equal(4.0, RangeExtd(3...5.1).bsearch{|i| ary[i] >= 11})
-      assert_equal(nil, RangeExtd(3.6...4).bsearch{|i| ary[i] >= 11})
+      assert_nil        RangeExtd(3.6...4).bsearch{|i| ary[i] >= 11}
 
       assert_equal(4,   RangeExtd(3...5,   1).bsearch{  |i| ary[i] >= 11})
-      assert_equal(nil, RangeExtd(4...5,   1).bsearch{  |i| ary[i] >= 11})
+      assert_nil        RangeExtd(4...5,   1).bsearch{  |i| ary[i] >= 11}
       assert_equal(4.0, RangeExtd(3...5.1, 1).bsearch{|i| ary[i] >= 11})
-      assert_equal(nil, RangeExtd(3.6...4, 1).bsearch{|i| ary[i] >= 11})
+      assert_nil        RangeExtd(3.6...4, 1).bsearch{|i| ary[i] >= 11}
 
       assert_raises TypeError do
         RangeExtd.new((?a..?b), :exclude_begin => true).bsearch{|i| ary[i] >= 11}
@@ -771,8 +766,8 @@ return
       sp = Special.new
 
       # Standard Range
-      assert_equal(nil, RangeExtd(3..4).bsearch{ |i| sp[i]})
-      assert_equal(nil, RangeExtd(3...4).bsearch{|i| sp[i]})
+      assert_nil     RangeExtd(3..4).bsearch{ |i| sp[i]}
+      assert_nil     RangeExtd(3...4).bsearch{|i| sp[i]}
       assert(1e-8 > (RangeExtd(3.0...4).bsearch{|i| sp[i]} - 3.5).abs)
       assert(1e-8 > (RangeExtd(3...4.0).bsearch{|i| sp[i]} - 3.5).abs)
       assert(1e-8 > (RangeExtd(3.3..4).bsearch{ |i| sp[i]} - 3.5).abs)
@@ -895,7 +890,7 @@ return
       assert_equal(@ie-@ib,   @s12.size)
       assert_equal(@ie-@ib,   @s21.size)
       assert_equal(@ie-@ib-1, @s22.size)
-      assert_equal nil, RangeExtd("a", "c").size
+      assert_nil      RangeExtd("a", "c").size
       assert_equal 0, RangeExtd::NONE.size
       assert_equal Float::INFINITY, RangeExtd::ALL.size
 
@@ -948,7 +943,7 @@ return
       # String
       rsi = (?a..?d)
       if rsi.size.nil?
-        assert_equal nil, RangeExtd(rsi, excl_ini).size	# Ruby 2.1
+        assert_nil        RangeExtd(rsi, excl_ini).size	# Ruby 2.1
       else
         assert_equal   3, RangeExtd(rsi, excl_ini).size	# If the specification ever changes?
       end
@@ -990,10 +985,10 @@ return
       assert  (RangeExtd::Infinity::NEGATIVE.negative?)
       assert !(RangeExtd::Infinity::POSITIVE.negative?)
       assert_equal(-1, (RangeExtd::Infinity::NEGATIVE <=> -3))
-      assert_equal(nil,(RangeExtd::Infinity::NEGATIVE <=> Object.new))
+      assert_nil       (RangeExtd::Infinity::NEGATIVE <=> Object.new)
       assert_equal  0, (RangeExtd::Infinity::NEGATIVE <=> RangeExtd::Infinity::NEGATIVE)
       assert_equal  1, (RangeExtd::Infinity::POSITIVE <=> -3)
-      assert_equal nil,(RangeExtd::Infinity::POSITIVE <=> Object.new)
+      assert_nil       (RangeExtd::Infinity::POSITIVE <=> Object.new)
       assert_equal  0, (RangeExtd::Infinity::POSITIVE <=> RangeExtd::Infinity::POSITIVE)
       assert_equal  1, (RangeExtd::Infinity::POSITIVE <=> RangeExtd::Infinity::NEGATIVE)
       assert_equal(-1, (RangeExtd::Infinity::NEGATIVE <=> RangeExtd::Infinity::POSITIVE))
@@ -1216,8 +1211,8 @@ return
       assert      !RaE(?a, ?b, true, true).is_none?
       assert       RaE(?a, ?b, true, true).empty?
       assert       RaE(?a, ?b, true, true).null?
-      assert_equal nil, RangeExtd::NONE.begin
-      assert_equal nil, RangeExtd::NONE.end
+      assert_nil  RangeExtd::NONE.begin
+      assert_nil  RangeExtd::NONE.end
     end
 
 
@@ -1259,7 +1254,11 @@ return
       assert         !r.cover?(5)
       assert         !(r === 5)
       assert_equal Float::INFINITY, r.end	# It is exactly Float.
-      assert     (! defined? r.end.positive?)
+
+      # It seems in the old versions of Ruby, Float::INFINITY.positive? was not defined,
+      # as this used to give false.  As of Ruby 2.6, it is true (and it should be).
+      assert (defined? Float::INFINITY.positive?), (defined? r.end.positive?)
+
       n = 0
       r.each{|ei| n+=ei;break if n > 20}	# [6, 7, 8, ...]
       assert_equal 21, n
@@ -1268,10 +1267,10 @@ return
       assert_equal 24, n
 
       assert_raises TypeError do
-        dummy = r.first(?a)
+        r.first(?a)
       end
       assert_raises TypeError do
-        dummy = r.last(3)
+        r.last(3)
       end
     end
 
@@ -1310,13 +1309,13 @@ return
       assert_equal 'z', rs.last
       assert      !rs.cover?(?z)
       assert       rs.cover?(?x)
-      assert_equal nil, (rs === ?x)
+      assert_nil  (rs === ?x)
       assert_equal RangeExtd::Infinity::NEGATIVE, rs.begin	# It is Infinity,
       assert_equal(-Float::INFINITY, rs.begin)	# but still equal to Float.
       assert     ! rs.begin.positive?
       assert_equal  Float::INFINITY, rs.size
       assert_raises TypeError do
-        dummy = rs.last(3)
+        rs.last(3)
       end
     end
 
@@ -1359,16 +1358,16 @@ return
 
       # RangeExtd#eql?bsearch
       ary = [0, 4, 7, 10, 12]
-      assert_equal nil, (3...4).bsearch{    |i| ary[i] >= 11}
+      assert_nil        (3...4).bsearch{    |i| ary[i] >= 11}
       assert_equal   4, (3...5).bsearch{    |i| ary[i] >= 11}
       assert_equal 4.0, (3..5.1).bsearch{   |i| ary[i] >= 11}
       assert_equal 4.0, (3.6..4).bsearch{   |i| ary[i] >= 11}
-      assert_equal nil, (3.6...4).bsearch{  |i| ary[i] >= 11}
+      assert_nil        (3.6...4).bsearch{  |i| ary[i] >= 11}
       assert_equal 4.0, (3.6...4.1).bsearch{|i| ary[i] >= 11}
 
       sp = Special.new
-      assert_equal nil, (3..4).bsearch{   |i| sp[i]}
-      assert_equal nil, (3...4).bsearch{  |i| sp[i]}
+      assert_nil           (3..4).bsearch{   |i| sp[i]}
+      assert_nil           (3...4).bsearch{  |i| sp[i]}
       assert_equal  0,(((3.0...4).bsearch{|i| sp[i]}-3.5)*1e10.abs).to_i	# => 3.5000000000000004
       assert_equal  0,(((3...4.0).bsearch{|i| sp[i]}-3.5)*1e10.abs).to_i	# => 3.5000000000000004
       assert_equal  0,(((3.3..4).bsearch{ |i| sp[i]}-3.5)*1e10.abs).to_i	# => 3.5000000000000004
@@ -1406,6 +1405,7 @@ return
       #    4.4 - 2.4   # => 2.0000000000000004
       #    4.8 - 2.8   # => 2.0
       assert(! RangeExtd(1..5, true, true).eql?(RangeExtd(Rational(1,1), 5, true, true)))  # => false
+
       assert_equal [2, 3, 4], RangeExtd(1..5, true, true).to_a      # => [2, 3, 4]
       assert_equal 3, RangeExtd(1..5, true, true).to_a.size # => 3
       assert_raises(TypeError){ RangeExtd(Rational(1,1)..5).to_a }	# => TypeError
@@ -1422,7 +1422,12 @@ return
       assert_equal 4, (1.5...4.9).size	# => 4	# Why not 3??
       assert_equal 3, (1.5...4.5).size	# => 3
       assert_equal Float::INFINITY, (0...Float::INFINITY).size	# => Infinity
-      assert_equal 0, (Float::INFINITY..Float::INFINITY).size
+      begin
+        i = (Float::INFINITY..Float::INFINITY).size
+        assert_equal 0, i  # In the older versions of Ruby
+      rescue # FloatDomainError: NaN  (though it was not defined in old-version Ruby!)
+        assert_raises(FloatDomainError){ RangeExtd(Float::INFINITY..Float::INFINITY).size }
+      end
 
       # RangeExtd#step	# => the same as each
 
@@ -1487,8 +1492,8 @@ return
       assert  RangeExtd::ALL.valid?  # => true
 
       # Range#empty?
-      assert_equal nil, (nil..nil).empty?  # => nil
-      assert_equal nil, (1...1).empty?     # => nil
+      assert_nil       (nil..nil).empty?  # => nil
+      assert_nil       (1...1).empty?     # => nil
       assert !(1..1).empty?      # => false
       assert  RangeExtd(1...1,   true).empty? # => true
       assert  RangeExtd(1...2,   true).empty? # => true
@@ -1506,9 +1511,9 @@ return
       assert !(3...7.0).equiv?(3.0..6)  # => false
 
       # class Infinity
-      assert_equal  -1, (?z <=> RangeExtd::Infinity::POSITIVE)
+      assert_equal( -1, (?z <=> RangeExtd::Infinity::POSITIVE))
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> ?z)
-      assert_equal nil, (50 <=> RangeExtd::Infinity::POSITIVE)
+      assert_nil        (50 <=> RangeExtd::Infinity::POSITIVE)
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> 50)
     end	# def test_in_document
 
