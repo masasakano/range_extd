@@ -5,12 +5,12 @@ require 'date'
 
 Gem::Specification.new do |s|
   s.name = %q{range_extd}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
-  s.version = "1.0"
+  s.version = "1.1".sub(/.*/){|c| fs = Dir.glob('changelog', File::FNM_CASEFOLD); raise('More than one ChangeLog exist!') if fs.size > 1; warn("WARNING: Version(s.version=#{c}) already exists in #{fs[0]} - ok?") if fs.size == 1 && !IO.readlines(fs[0]).grep(/^\(Version: #{Regexp.quote c}\)$/).empty? ; c }  # n.b., In macOS, changelog and ChangeLog are identical in default.
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   # s.executables << 'hola'
   # s.bindir = 'bin'
   s.authors = ["Masa Sakano"]
-  s.date = %q{2019-10-30}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
+  s.date = %q{2019-11-01}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{RangeExtd - Extended Range class with exclude_begin and open-ends}
   s.description = %q{Package for a subclass of Range, RangeExtd and RangeExtd::Infinity.  The former defines a range that enables an exclusion of the begin boundary, in addition to the end boundary as in the built-in Range, and accepts open-ended ranges to infinity for either (or both) positive/negative direction.  The latter has the two constant objects, POSITIVE and NEGATIVE, and they are a generalised Infinity of Float::INFINITY to any Comparable objects.}
   # s.email = %q{abc@example.com}

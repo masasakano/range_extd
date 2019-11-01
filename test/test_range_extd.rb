@@ -49,6 +49,12 @@ end
 # Unit Test
 #################################################
 
+begin
+  _ = Rational(2, 3)
+rescue
+  require 'rational'
+end
+
 #if $0 == __FILE__
 gem "minitest"
 # require 'minitest/unit'
@@ -142,6 +148,10 @@ gem "minitest"
   class TestUnitFoo < MiniTest::Unit::TestCase
     T = true
     F = false
+    InfF = Float::INFINITY
+    InfP = RangeExtd::Infinity::POSITIVE
+    InfN = RangeExtd::Infinity::NEGATIVE
+
     def setup
       @ib = 1
       @ie = 6
@@ -165,6 +175,48 @@ gem "minitest"
       assert_equal 0, (true <=> true)
       assert_equal 0, (IO <=> IO)
     end	# def test_object_compare
+
+    # InfP (RangeExtd::Infinity::POSITIVE) and InfN (RangeExtd::Infinity::NEGATIVE)
+    # are always comparable with any comparable objects except for
+    # Float::INFINITY, in which case ArgumentError is raised.
+    def test_infinity_compare
+      assert_operator            7.7, '<', InfF
+      assert_operator            7.7, '<', InfP
+      assert_operator            7.7, '>', InfN
+      assert_operator           InfP, '>', 7.7
+      assert_operator           InfN, '<', 7.7
+      assert_operator              8, '<', InfF
+      assert_operator              8, '<', InfP
+      assert_operator Rational(2, 3), '<', InfF
+      assert_operator Rational(2, 3), '<', InfP
+      assert_operator           InfP, '>', Rational(2, 3)
+      assert_operator           InfN, '<', Rational(2, 3)
+      assert_operator 'h', '<',  InfP
+      assert_operator 'h', '>',  InfN
+      assert_raises(ArgumentError) { InfF <  InfP }
+      assert_raises(ArgumentError) { InfP <  InfF }
+      assert_raises(ArgumentError) { InfP < -InfF }
+      assert_raises(ArgumentError) { InfP >  InfF }
+      assert_raises(ArgumentError) { InfP > -InfF }
+      assert_raises(ArgumentError) { InfN <  InfF }
+      assert_raises(ArgumentError) { InfN < -InfF }
+      assert_raises(ArgumentError) { InfF < Object.new }
+      assert_raises(ArgumentError) { InfP < Object.new }
+      assert_nil     (InfF <=> InfP)
+      assert_nil     (InfP <=> InfF)
+      assert_equal(-1,  7.7 <=> InfP)
+      assert_equal( 1,  7.7 <=> InfN)
+      assert_equal( 1, InfP <=> 7.7)
+      assert_equal(-1, InfN <=> 7.7)
+      assert_equal(-1,    5 <=> InfP)
+      assert_equal( 1,    5 <=> InfN)
+      assert_equal( 1, InfP <=> 5)
+      assert_equal(-1, InfN <=> 5)
+      assert_equal(-1,  'h' <=> InfP)
+      assert_equal(-1, InfN <=> 'h')
+      #assert_raises(ArgumentError) { puts "##########  #{(InfP > InfF).inspect}";InfP < InfF }
+      #puts "##########  #{(InfP <=> InfF).inspect}"
+    end
 
     def test_overwrite_compare
       assert_nil     (Float::INFINITY <=> RangeExtd::Infinity::POSITIVE)
@@ -295,8 +347,25 @@ gem "minitest"
     end
 
     def test_new_endless_range01
+      begin
+        _ = (0..nil)
+      rescue ArgumentError
+        # Before Ruby 2.6
+        assert_raises(ArgumentError) {RangeExtd.new(-2, nil)}
+        return  # Before Ruby 2.6
+      end
+
+      # Ruby 2.6 upwards
       ra00 = (-2..)
       rae0 = RangeExtd.new(ra00)
+      assert rae0.valid?
+      assert_equal(-2,  rae0.begin)
+      assert_nil        rae0.end
+      assert_equal Float::INFINITY,   rae0.size
+      assert_equal ra00.exclude_end?, rae0.exclude_end?
+      refute                          rae0.exclude_begin?
+
+      rae0 = RangeExtd.new(-2, nil)
       assert rae0.valid?
       assert_equal(-2,  rae0.begin)
       assert_nil        rae0.end
@@ -306,6 +375,15 @@ gem "minitest"
     end
 
     def test_new_endless_range02
+      begin
+        _ = (?d...nil)
+      rescue ArgumentError
+        # Before Ruby 2.6
+        assert_raises(ArgumentError) {RangeExtd.new(?d, nil)}
+        return  # Before Ruby 2.6
+      end
+
+      # Ruby 2.6 upwards
       ra00 = (Float::INFINITY...)
       rae0 = RangeExtd.new(ra00)
       assert rae0.valid?
@@ -314,6 +392,38 @@ gem "minitest"
       assert_equal Float::INFINITY,   rae0.size
       assert_equal ra00.exclude_end?, rae0.exclude_end?
       refute                          rae0.exclude_begin?
+
+      assert_equal Float::INFINITY, RangeExtd.new(?d, RangeExtd::Infinity::POSITIVE).size
+      assert_equal Float::INFINITY, RangeExtd.new(RangeExtd::Infinity::NEGATIVE, ?d).size
+
+      rae0 = RangeExtd.new(?d, nil, false, true)
+      assert rae0.valid?
+      assert_equal(?d,  rae0.begin)
+      assert_nil        rae0.end
+      # assert_equal (?d..nil).size, rae0.size   # assert_nil warning!
+      assert_nil  (?d..nil).size
+      assert_nil  rae0.size
+      assert_equal true,           rae0.exclude_end?
+      refute                       rae0.exclude_begin?
+    end
+
+    def test_new_endless_range03
+      begin
+        _ = (?d...nil)
+      rescue ArgumentError
+        # Before Ruby 2.6
+        assert_raises(ArgumentError) {RangeExtd.new(?d, nil)}
+        return  # Before Ruby 2.6
+      end
+
+      ra00 = (-Float::INFINITY...)
+      rae0 = RangeExtd.new(ra00)
+      assert rae0.valid?
+      assert_equal(-Float::INFINITY,   rae0.begin)
+      assert_nil         rae0.end
+      assert_equal  Float::INFINITY,   rae0.size
+      assert_equal  ra00.exclude_end?, rae0.exclude_end?
+      refute                           rae0.exclude_begin?
     end
 
     def test_new_middle_strings
@@ -419,19 +529,26 @@ gem "minitest"
       assert_equal RangeExtd::NONE, RaE(?a, ?a, true, true)
       assert_equal (0..0), RaE(0, 0, false, false)
 
+      # The following used to raise RangeError (Ver.0.4 and 1.0) or ArgumentError (<= Ver.0.4.0)
+      assert_output('', /Infinity/i){RaE(RangeExtd::Infinity::NEGATIVE,  Float::INFINITY)}  # Warning = "RangeExtd component of the RangeExtd::Infinity object replaced with Float::INFINITY"
+      capture_io{
+        ra_b = RaE(InfN, InfF).begin  # RangeExtd::Infinity::NEGATIVE replaced with -Float::INFINITY
+        assert_equal    -InfF, ra_b
+        assert_operator Float, '===', ra_b
+      }
+
       # Wrong range (Infinity input)
       assert_raises(re){ RaE(?a, RangeExtd::Infinity::NEGATIVE) }
       assert_equal (RangeExtd::Infinity::NEGATIVE..?a),  RaE(RangeExtd::Infinity::NEGATIVE, ?a)
       assert_equal (RangeExtd::Infinity::NEGATIVE...?a), RaE(RangeExtd::Infinity::NEGATIVE, ?a, nil, 3)
       assert_equal (?a..RangeExtd::Infinity::POSITIVE),  RaE(?a, RangeExtd::Infinity::POSITIVE)
       assert_equal RangeExtd, RaE(?a, RangeExtd::Infinity::POSITIVE, 1).class
-      assert_raises(re){ RaE(RangeExtd::Infinity::NEGATIVE,  Float::INFINITY) }	# Float::INFINITY is an exception - you should not mix it up.
-      assert_raises(re){ RaE(-Float::INFINITY, RangeExtd::Infinity::POSITIVE) }	# Float::INFINITY is an exception - you should not mix it up.
+
       assert_raises(re){ RaE(RangeExtd::Infinity::POSITIVE, ?a) }
       assert_raises(re){      RaE(RangeExtd::Infinity::POSITIVE, RangeExtd::Infinity::NEGATIVE) }
       assert_equal RangeExtd, RaE(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).class
-      assert_raises(re){ RaE(RangeExtd::Infinity::NEGATIVE, 0, false, false) }	# For Numeric, you should use -Float::INFINITY
-      assert_raises(re){ RaE(0, RangeExtd::Infinity::POSITIVE, false, false) }	# For Numeric, you should use  Float::INFINITY
+      # assert_raises(re){ RaE(RangeExtd::Infinity::NEGATIVE, 0, false, false) }	# For Numeric, you should use -Float::INFINITY
+      # assert_raises(re){ RaE(0, RangeExtd::Infinity::POSITIVE, false, false) }	# For Numeric, you should use  Float::INFINITY
       assert_equal RangeExtd, RaE(RangeExtd::Infinity::NEGATIVE, ?a, false, false).class
       assert_equal RangeExtd, RaE(?a, RangeExtd::Infinity::POSITIVE, false, false).class
       # assert_raises(ae){ RaE(RangeExtd::Infinity::NEGATIVE, ?a, true) }	#### No exception.  Is it OK???
@@ -1051,12 +1168,20 @@ gem "minitest"
       assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::NEGATIVE
       assert_equal RangeExtd::Infinity::POSITIVE, RangeExtd::Infinity::POSITIVE.succ
       assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::NEGATIVE.succ
-      assert_equal(-Float::INFINITY, RangeExtd::Infinity::NEGATIVE)
-      assert_equal  Float::INFINITY, RangeExtd::Infinity::POSITIVE
-      assert !(RangeExtd::Infinity::NEGATIVE > -Float::INFINITY)
-      assert !(RangeExtd::Infinity::NEGATIVE < -Float::INFINITY)
-      assert !(RangeExtd::Infinity::POSITIVE >  Float::INFINITY)
-      assert !(RangeExtd::Infinity::POSITIVE <  Float::INFINITY)
+      refute_equal(-Float::INFINITY, RangeExtd::Infinity::NEGATIVE)
+      refute_equal  Float::INFINITY, RangeExtd::Infinity::POSITIVE
+      assert_raises(ArgumentError) { Float::INFINITY < RangeExtd::Infinity::POSITIVE }
+      assert_raises(ArgumentError) { Float::INFINITY > RangeExtd::Infinity::POSITIVE }
+      assert_raises(ArgumentError) { Float::INFINITY > RangeExtd::Infinity::NEGATIVE }
+      assert_raises(ArgumentError) { RangeExtd::Infinity::NEGATIVE > -Float::INFINITY }
+      assert_raises(ArgumentError) { RangeExtd::Infinity::NEGATIVE >  Float::INFINITY }
+      assert_raises(ArgumentError) { RangeExtd::Infinity::NEGATIVE < -Float::INFINITY }
+      assert_raises(ArgumentError) { RangeExtd::Infinity::POSITIVE >  Float::INFINITY }
+      assert_raises(ArgumentError) { RangeExtd::Infinity::POSITIVE < -Float::INFINITY }
+      #assert !(RangeExtd::Infinity::POSITIVE >  Float::INFINITY)  # Before Ver.1.1
+      #assert !(RangeExtd::Infinity::NEGATIVE > -Float::INFINITY)  # Before Ver.1.1
+      #assert !(RangeExtd::Infinity::POSITIVE >  Float::INFINITY)  # Before Ver.1.1
+      #assert !(RangeExtd::Infinity::POSITIVE <  Float::INFINITY)  # Before Ver.1.1
       assert  (RangeExtd::Infinity::POSITIVE > 0)
       assert  (RangeExtd::Infinity::POSITIVE > RangeExtd::Infinity::NEGATIVE)
       assert  (RangeExtd::Infinity::NEGATIVE < 0)
@@ -1068,6 +1193,8 @@ gem "minitest"
       assert !(RangeExtd::Infinity::POSITIVE === RangeExtd::Infinity::NEGATIVE)
       assert !(RangeExtd::Infinity::NEGATIVE === RangeExtd::Infinity::POSITIVE)
 
+      #### Comment valid up to Ver.1.0  (changed in Ver.1.1)
+      #
       ## This is the case so far.  Rewrite Float/Fixnum/Bignum/Rational??
       ## It would get slow, though!  It is a lot better to use Float::INFINITY, instead.
       # assert_raises ArgumentError do
@@ -1082,6 +1209,21 @@ gem "minitest"
       assert_equal(-1, (Time.now <=> RangeExtd::Infinity::POSITIVE))
     end
 
+    def test_is_infinities
+      # infinity?
+      refute RangeExtd::Infinity.infinity? 5
+      refute RangeExtd::Infinity.infinity? InfF
+      assert RangeExtd::Infinity.infinity? InfP
+      assert RangeExtd::Infinity.infinity? InfN
+      assert RangeExtd::Infinity.infinity? RangeExtd::ALL.begin
+
+      # infinite?  (similar but different!)
+      refute RangeExtd::Infinity.infinite? 5
+      assert RangeExtd::Infinity.infinite? InfF
+      assert RangeExtd::Infinity.infinite? InfP
+      assert RangeExtd::Infinity.infinite? InfN
+      assert RangeExtd::Infinity.infinite? RangeExtd::ALL.begin
+    end
 
     def test_RangeExtdClass_valid
       assert !RangeExtd.valid?(nil, nil, 9,9)	# All 3 were true up to Version 0.1.0
@@ -1303,8 +1445,8 @@ gem "minitest"
       assert  RangeExtd::ALL.valid?
       assert !RangeExtd::ALL.null?
       assert !RangeExtd::ALL.empty?
-      assert_equal (-Float::INFINITY..Float::INFINITY), RangeExtd::ALL
-      assert_equal RangeExtd::ALL, (-Float::INFINITY..Float::INFINITY)
+      refute_equal (-Float::INFINITY..Float::INFINITY), RangeExtd::ALL
+      refute_equal RangeExtd::ALL, (-Float::INFINITY..Float::INFINITY)
       assert_equal RangeExtd::Infinity::POSITIVE, RangeExtd::ALL.end
       assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::ALL.begin
     end
@@ -1377,7 +1519,7 @@ gem "minitest"
       assert       rs.cover?(?x)
       assert_nil  (rs === ?x)
       assert_equal RangeExtd::Infinity::NEGATIVE, rs.begin	# It is Infinity,
-      assert_equal(-Float::INFINITY, rs.begin)	# but still equal to Float.
+      refute_equal(-Float::INFINITY, rs.begin)
       assert     ! rs.begin.positive?
       assert_equal  Float::INFINITY, rs.size
       assert_raises TypeError do
@@ -1385,6 +1527,12 @@ gem "minitest"
       end
     end
 
+    def test_infinity_unary_operators
+      assert_equal RangeExtd::Infinity::POSITIVE, +RangeExtd::Infinity::POSITIVE
+      assert_equal RangeExtd::Infinity::NEGATIVE, -RangeExtd::Infinity::POSITIVE
+      assert_equal RangeExtd::Infinity::NEGATIVE, +RangeExtd::Infinity::NEGATIVE
+      assert_equal RangeExtd::Infinity::POSITIVE, -RangeExtd::Infinity::NEGATIVE
+    end
 
     # Tests of all the examples in the document.
     def test_in_document
@@ -1579,7 +1727,7 @@ gem "minitest"
       # class Infinity
       assert_equal( -1, (?z <=> RangeExtd::Infinity::POSITIVE))
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> ?z)
-      assert_nil        (50 <=> RangeExtd::Infinity::POSITIVE)
+      assert_equal( -1, (50 <=> RangeExtd::Infinity::POSITIVE))
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> 50)
     end	# def test_in_document
 

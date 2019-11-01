@@ -26,9 +26,6 @@ req_files.each do |req_file|
   end
 end	# req_files.each do |req_file|
 
-########################################
-# Initial set up of 2 constants in RangeExtd.
-########################################
 
 # =Class RangeExtd
 #
@@ -60,6 +57,10 @@ end	# req_files.each do |req_file|
 #
 class RangeExtd < Range
 
+  # To conrol how the {RangeExtd} should be displayed or set (in one form).
+  # It can be read and reset by {RangeExtd.middle_strings} and
+  # {RangeExtd.middle_strings=}
+  # Default is +['', '', '<', '..', '.', '', '']+
   @@middle_strings = []
 
   # Error messages
@@ -726,6 +727,28 @@ class RangeExtd < Range
   # in the range whereas 4.8 is not in the range by definition,
   # but not the example right above.
   #
+  # === Ruby 2.6 Endless Range and Infinity.
+  #
+  # Before RangeExtd Ver.1.1, if a {RangeExtd} object contains
+  # {RangeExtd::Infinity} objects for either begin or end, {#size} used to
+  # be always +Float::INFINITY+ no matter what the other object is
+  # (except when the other object is also a {RangeExtd::Infinity} object).
+  # However, since the introduction of the endless Range in Ruby 2.6,
+  # Ruby returns as follows:
+  #
+  #   (5..).size  # => Float::INFINITY
+  #   (?a..).size # => nil
+  #
+  # Accordingly, this class {RangeExtd} now behaves the same as Ruby (2.6 or later).
+  #
+  # Similarly,
+  #
+  #   (Float::INFINITY..Float::INFINITY).size
+  #
+  # has changed (I do not know in which Ruby version)!
+  # It used to be 0.  However, As of Ruby 2.6, it is +FloatDomainError: NaN+
+  # Again this class now follows Ruby's default ({RangeExtd} Ver.1.0 or later).
+  #
   # @note When both ends n are the same INFINITY (of the same parity),
   #   +(n..n).size+ used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
   #   This routine follows what Ruby produces, depending on Ruby's version it is run on.
@@ -758,11 +781,16 @@ class RangeExtd < Range
     # Note (Infinity..Infinity) => 0  (Range as in Ruby 2.1)
     # however, 
     elsif (defined?(self.begin.infinity?) && self.begin.infinity? || self.begin == -Infinity::FLOAT_INFINITY) ||
-          (defined?(self.end.infinity?)   && self.end.infinity?   || self.end == Infinity::FLOAT_INFINITY)
+          (defined?(self.end.infinity?)   && self.end.infinity?   || self.end == Infinity::FLOAT_INFINITY) ||
+          (self.end.nil?)  # RangeExtd#end can be nil only for Ruby-2.6
       if self.begin == self.end
         # This varies, depending on Ruby's version!  It used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
         return (Float::INFINITY..Float::INFINITY).size
         # return 0
+      elsif self.end.nil?
+        # Behaves as Ruby does -
+        #  Infinity::FLOAT_INFINITY for Numeric and nil for any other
+        return (self.begin..nil).size
       else
         return Infinity::FLOAT_INFINITY
       end
@@ -952,12 +980,39 @@ class RangeExtd < Range
     if hsopt.has_key?(:exclude_end)
       exclude_end   = (hsopt[:exclude_end] && true)
     end
+
     # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
-    beginend + [exclude_end, exclude_begin]
-
+    _normalize_infinity_float(beginend) + [exclude_end, exclude_begin]
   end	# def self._get_init_args(*inar)
-
   private_class_method :_get_init_args	# From Ruby 1.8.7 (?)
+
+  # Replaces {RangeExtd::Infinity} with {Float::INFINITY} when appropriate
+  #
+  # @param beginend [Array] 2-compoents
+  # @return [Array] 2-compoents
+  def self._normalize_infinity_float(beginend)
+    is_begin_inf = Infinity.infinity?(beginend[0])
+    return beginend if is_begin_inf ^! Infinity.infinity?(beginend[1])
+
+    # Now, only one of them is a {RangeExtd::Infinity} type object.
+    if is_begin_inf && beginend[1].class.method_defined?(:divmod)
+      [_normalize_infinity_float_core(beginend[0]), beginend[1]] # "begin" is Infinity
+    elsif beginend[0].class.method_defined?(:divmod)
+      [beginend[0], _normalize_infinity_float_core(beginend[1])] # "end" is Infinity
+    else
+      beginend
+    end
+  end
+  private_class_method :_normalize_infinity_float  # From Ruby 1.8.7 (?)
+
+  # @param inf [RangeExtd::Infinity]
+  # @return [RangeExtd::Infinity, Float] +/-Float::INFINITY if Float
+  def self._normalize_infinity_float_core(inf)
+    msg = 'RangeExtd component of the RangeExtd::Infinity object replaced with Float::INFINITY.'
+    warn msg if !$VERBOSE.nil?
+    (inf.positive? ? 1 : -1) * Float::INFINITY
+  end
+  private_class_method :_normalize_infinity_float_core  # From Ruby 1.8.7 (?)
 
 
   # Returns true if the range to be constructed (or given) is valid,
@@ -977,7 +1032,7 @@ class RangeExtd < Range
   #    introduced in Ruby 2.6 (see below for the exceptions), both of which are valid.
   #    For example, (nil..nil) is NOT valid (nb., it raised Exception in Ruby 1.8).
   # 2. Except for {RangeExtd::NONE}, {#begin} must have the method +<=+.
-  #    Therefore, some Endless Ranges (Ruby 2.6 and upwards) like (true..) are *not* valid.
+  #    Therefore, some Endless Ranges (Ruby 2.6 and later) like (true..) are *not* valid.
   #    Note even "true" has the method +<=>+ and hence checking +<=+ is essential.
   # 3. {#begin} must be smaller than or equal to {#end},
   #    that is, ({#begin} <=> {#end}) must be either -1 or 0.
@@ -1053,7 +1108,7 @@ class RangeExtd < Range
       rescue NoMethodError, TypeError
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
-          warn self.const_get(:ERR_MSGS)[:infinity_compare]  # one of the tests comes here.
+          warn self.const_get(:ERR_MSGS)[:infinity_compare] if !$VERBOSE.nil?  # one of the tests comes here.
         end
         return false	# return
       end
@@ -1074,14 +1129,13 @@ class RangeExtd < Range
       else
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
-          warn self.const_get(:ERR_MSGS)[:infinity_compare]  # not tested so far?
+          warn self.const_get(:ERR_MSGS)[:infinity_compare] if !$VERBOSE.nil?  # not tested so far?
         end
         false	# Not Comparable.
       end	# case t
       # All statements of return above.
     end
   end	# def valid?
-
 
   # Set the class variable to be used in {RangeExtd#to_s} and {RangeExtd#inspect}
   # to configure the format of their returned values.
@@ -1283,11 +1337,11 @@ class RangeExtd < Range
   # No range.
   # In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
   NONE = RangeExtd.new(nil, nil, true, true, :Constant)
-  #NONE = RangeExtd.new(nil...nil, true, true, :Constant)
+  #NONE= RangeExtd.new(nil...nil, true, true, :Constant)
 
   # Range covers everything.
   ALL  = RangeExtd.new(Infinity::NEGATIVE, Infinity::POSITIVE, false, false, :Constant)
-  #ALL  = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false, :Constant)
+  #ALL = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false, :Constant)
 
 end	# class RangeExtd < Range
 

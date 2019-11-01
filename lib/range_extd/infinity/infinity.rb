@@ -17,7 +17,9 @@ class RangeExtd < Range
   # Class to hold just two constants: 
   # * RangeExtd::Infinity::NEGATIVE
   # * RangeExtd::Infinity::POSITIVE
+  #
   # and two more:
+  #
   # * FLOAT_INFINITY  (OBSOLETE; workaround for Ruby 1.8 to represent Float::INFINITY)
   # * CLASSES_ACCEPTABLE (see below)
   #
@@ -42,7 +44,7 @@ class RangeExtd < Range
   # There are only three built-in classes that are Comparable: String, Time and Numeric
   # (except for Complex).
   # Note Date and DateTime objects are so, too, however practically
-  # they need "require", hence are (and must be) treated, the same as any other class.
+  # they need "require", hence are (and must be) treated, the same as any other classes.
   # For String and Time class objects, the [#<=>] operator work as expected
   # in the commutative way.
   #    ?z <=> RangeExtd::Infinity::POSITIVE    # => nil
@@ -96,9 +98,43 @@ class RangeExtd < Range
   #
   # Only the methods defined in this class are
   # {#===}, {#==}, {#<=>}, {#succ}, {#to_s}, {#inspect},
-  # {#infinity?}, {#positive?} and {#negative?}.
+  # {#infinity?}, {#positive?} and {#negative?}, and in addition, since Version 1.1,
+  # two unary operators {#@+} and {#@-} to unchange/swap the parity are defined
+  # ({#<} and {#>} are modified, too, to deal with Integer and Float;
+  # I do not know whether the default behaviour of these classes have changed
+  # in the recent versions of Ruby, hence resulting in the neccesity of this change).
   #
-  # Note that the unary operand [#-@] is not defined.
+  # === Comparison operators
+  #
+  # {RangeExtd::Infinity::POSITIVE} and InfN {RangeExtd::Infinity::NEGATIVE}
+  # are always comparable with any comparable objects except for
+  # Float::INFINITY, in which case
+  #
+  #   (RangeExtd::Infinity::POSITIVE <=> Float::INFINITY)  # => nil
+  #   (RangeExtd::Infinity::POSITIVE <   Float::INFINITY)  # => ArgumentError
+  #   (RangeExtd::Infinity::POSITIVE >   Float::INFINITY)  # => ArgumentError
+  #   (RangeExtd::Infinity::POSITIVE ==  Float::INFINITY)  # => false
+  #
+  # which is what happens for the comparison operators for Float::INFINITY.
+  #
+  # Basically, the concept of {RangeExtd::Infinity::POSITIVE} is a generalised
+  # concept of Float::INFINITY.  Therefore they are really not *equal*.
+  # On the other hand, {RangeExtd::Infinity::POSITIVE} is *greater* than
+  # any normal comparable objects (except those that are *infinite*).
+  # Therefore, all the following are true ({Object#<=>} and some methods
+  # in some classes are modified)
+  #
+  #   (5 < RangeExtd::Infinity::POSITIVE)
+  #   (5 > RangeExtd::Infinity::NEGATIVE)
+  #
+  #   ("a" < RangeExtd::Infinity::POSITIVE)
+  #   ("a" > RangeExtd::Infinity::NEGATIVE)
+  #
+  # whereas
+  #
+  #   (RangeExtd::Infinity::POSITIVE < Object.new)  # => ArgumentError
+  #
+  # raises ArgumentError.
   #
   class Infinity
   
@@ -118,9 +154,25 @@ class RangeExtd < Range
     # CLASSES_ACCEPTABLE = [self, Float, Fixnum, Bignum, Rational, Numeric, String]	# , BigFloat
     CLASSES_ACCEPTABLE.push BigFloat if defined? BigFloat
 
+    # Unary Operator: Plus
+    def +@
+      self
+    end
+
+    # Unary Operator: Minus
+    def -@
+      positive? ? NEGATIVE : POSITIVE
+    end
+
     def infinity?
       true
     end
+    #alias_method :infinite?, :infinity? if !self.method_defined? :infinite?  # Common with Float::INFINITY
+    ## If the alias for :infinite? is defined as above, the following would raise
+    #    NoMethodError: undefined method `>' for true:TrueClass
+    #  in the operation
+    #    Float::INFINITY <=> RangeExtd::Infinity::POSITIVE
+    #
   
     def positive?
       @positive 
@@ -134,44 +186,53 @@ class RangeExtd < Range
 
     # Always -1 or 1 except for itself and the corresponding infinities (== 0).  See {#==}.
     # Or, nil (as defined by Object), if the argument is not Comparable, such as, nil and IO.
+    #
     # @return [Integer, nil]
     def <=>(c)
-      if c.nil?
-        super
-      elsif !defined?(c.<=)	# Not Comparable?
-        super
-      elsif @positive 
-        if self == c
-          0
-        else
-          1
-        end
-      else	# aka negative
-        if self == c
-          0
-        else
-          -1
-        end
+      if c.nil? || !c.class.method_defined?(:<=) # Not Comparable?
+        nil
+      elsif c == Float::INFINITY
+        nil  # Special case.
+      else
+        (self == c) ? 0 : (@positive ? 1 : -1)
       end
     end
-  
+
+    alias_method :greater_than_before_rangeextd_infinity?, :>  if ! self.method_defined?(:greater_than_before_rangeextd_infinity?)	# No overwriting.
+    # Special case for Float::INFINITY
+    #
+    #   (Float::INFINITY > RangeExtd::Infinity::POSITIVE)
+    # raises ArgumentError and so does this method.
+    def >(c)
+      ((c.abs rescue c) == Float::INFINITY) ? raise(ArgumentError, "RangeExtd::Infinity object not comparable with '#{__method__}' with Float::INFINITY") : greater_than_before_rangeextd_infinity?(c)
+    end
+
+    alias_method :less_than_before_rangeextd_infinity?, :<  if ! self.method_defined?(:less_than_before_rangeextd_infinity?)	# No overwriting.
+    # Special case for Float::INFINITY
+    #
+    #   (Float::INFINITY > RangeExtd::Infinity::POSITIVE)
+    # raises ArgumentError and so does this method.
+    def <(c)
+      ((c.abs rescue c) == Float::INFINITY) ? raise(ArgumentError, "RangeExtd::Infinity object not comparable with '#{__method__}' with Float::INFINITY") : less_than_before_rangeextd_infinity?(c)
+    end
+
     # Always false except for itself and the corresponding {Float::INFINITY}
     # and those that have methods of {#infinity?} and {#positive?}
     # with the corresponding true/false values, in which case this returns true.
     def ==(c)
       if (Infinity === c)
         (@positive ^! c.positive?)	# It should be OK to compare object_id?
-      elsif c ==  FLOAT_INFINITY &&  @positive
-        true
-      elsif c == -FLOAT_INFINITY && !@positive
-        true
+      #elsif c ==  FLOAT_INFINITY &&  @positive
+      #  true
+      #elsif c == -FLOAT_INFINITY && !@positive
+      #  true
       elsif defined?(c.infinity?) && defined?(c.positive?)
         (c.infinity? && (@positive ^! c.positive?))
       else
         false
       end
     end
-  
+
     # Equivalent to {#==}
     def ===(c)
       self == c
@@ -283,6 +344,34 @@ __EOF__
     end
   end	# def self.overwrite_compare(obj)
 
+  # True if obj is a kind of Infinity like this class
+  #
+  # This is similar to the following, but is in a duck-typing way:
+  #
+  #   RangeExtd::Infinity === obj
+  #
+  # Note that this returns false for Float::INFINITY.
+  # If you want true for Float::INFINITY, use {RangeExtd::Infinity.infinite?} instead.
+  #
+  # @param obj [Object]
+  def self.infinity?(obj)
+    kl = obj.class
+    kl.method_defined?(:infinity?) && kl.method_defined?(:positive?) && kl.method_defined?(:negative?)
+  end
+
+  # True if obj is either Float::INFINITY or Infinity type.
+  #
+  # Note +Float#infinite?+ is defined - how to memorise this method name.
+  #
+  # @param obj [Object]
+  def self.infinite?(obj)
+    kl = obj.class
+    (kl.method_defined?(:infinite?) && obj.infinite?) || (kl.method_defined?(:infinity?) && obj.infinity?)
+  end
+
+  ######################################
+  # Special tricky routine below.  Do not rouch!
+  ######################################
 
     private
   
@@ -303,6 +392,10 @@ __EOF__
     # Disable new() so no other object will be created.
     private_class_method :new
   
+    ######################################
+    # Special tricky routine below.  Do not rouch!
+    ######################################
+
     warn_level = $VERBOSE
     begin
       $VERBOSE = nil	# Suppress the warning in the following line.
@@ -350,43 +443,158 @@ class Object
   #        if c._is_what_i_expect?
   #          # Write your definition.
   #        else       # When self does not know what to do with c.
-  #          super    # to call Object#<=>
+  #          super c  # to call Object#<=>
   #        end
   #      end
   #    end
   #
   def <=>(c)
-    if defined?(self.<=) && RangeExtd::Infinity === c
-      # if defined?(self.<=) && defined?(c.infinity?) && defined?(c.positive?)
-      # NOTE: Duck-typing is inappropriate here.
-      #   Only the objects that self wants to deal with here are
-      #   the instances of RangeExtd::Infinity, and not other
-      #   "infinity" object, such as, Float::INFINITY.  So,
-      #     (self <=> RangeExtd::Infinity::POSITIVE)  # => -1
-      #     (self <=> Float::INFINITY)                # => nil
-      #   in default.
-      if defined?(self.infinity?) && defined?(self.positive?)
-        if (self.positive? ^! c.positive?)
-          0
-        elsif self.positive?
-          1
-        else
-          -1
-        end
-      else
-        # (c <=> self) * (-1)
-        if c.positive?
-          -1
-        else
-          1
-        end
-      end
-    elsif object_id == c.object_id	# (nil <=> nil)  # => 0
-      0
-    else
-      nil
-    end	# if defined?(self.<=) && RangeExtd::Infinity === c
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    compare_obj_before_infinity(c)
   end	# def <=>(c)
 end	# class Object
 
+
+#
+# = class Numeric
+#
+# Modify {Numeric#>} and {Numeric#<} because +5 < RangeExtd::Infinity::POSITIVE+
+# raises ArgumentError(!).  In other words, +Integer#<+ does not respect
+# +Object#<=>+ but rewrites it.
+#
+# I do not know if it has been always the case, or some changes have been made
+# in more recent versions of Ruby.
+#
+# Note that +Float#<+ etc need to be redefined individually, because they seem
+# not to use +Numeric#<+ any more.
+class Numeric
+
+  alias_method :compare_than_numeric_before_infinity?, :<=>  if ! self.method_defined?(:compare_than_numeric_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <=>(c)
+    # Default if the special case INFINITY.
+    return compare_than_numeric_before_infinity?(c) if ((abs rescue self) == Float::INFINITY)
+
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    compare_than_numeric_before_infinity?(c)
+  end
+
+  alias_method :greater_than_numeric_before_infinity?, :>  if ! self.method_defined?(:greater_than_numeric_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def >(c)
+    # Default if self is Complex or something not Integer, Rational, Float or alike
+    # or the special case INFINITY.
+    return greater_than_numeric_before_infinity?(c) if !self.class.method_defined?(:>) || ((abs rescue self) == Float::INFINITY)
+
+    if RangeExtd::Infinity.infinity? c
+      c.negative?
+    else
+      greater_than_numeric_before_infinity?(c)
+    end
+  end
+
+  alias_method :less_than_numeric_before_infinity?, :<  if ! self.method_defined?(:less_than_numeric_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <(c)
+    # Default if self is Complex or something not Integer, Rational, Float or alike
+    # or the special case INFINITY.
+    return less_than_numeric_before_infinity?(c) if !self.class.method_defined?(:>) || ((abs rescue self) == Float::INFINITY)
+
+    if RangeExtd::Infinity.infinity? c
+      c.positive?
+    else
+      less_than_numeric_before_infinity?(c)
+    end
+  end
+end  # class Numeric
+
+
+#
+# = class Float
+#
+# The same as {Numeric#>} and {Numeric#<}.  See them for the background.
+class Float
+
+  alias_method :compare_than_float_before_infinity?, :<=>  if ! self.method_defined?(:compare_than_float_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <=>(c)
+    # Default if the special case INFINITY.
+    return compare_than_float_before_infinity?(c) if ((abs rescue self) == Float::INFINITY)
+
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    compare_than_float_before_infinity?(c)
+  end
+
+  alias_method :greater_than_float_before_infinity?, :>  if ! self.method_defined?(:greater_than_float_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def >(c)
+    # Default if self is Complex or something not Integer, Rational, Float or alike
+    # or the special case INFINITY.
+    return greater_than_float_before_infinity?(c) if ((abs rescue self) == Float::INFINITY)
+
+    if RangeExtd::Infinity.infinity? c
+      c.negative?
+    else
+      greater_than_float_before_infinity?(c)
+    end
+  end
+
+  alias_method :less_than_float_before_infinity?, :<  if ! self.method_defined?(:less_than_float_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <(c)
+    # Default if self is Complex or something not Integer, Rational, Float or alike
+    # or the special case INFINITY.
+    return less_than_float_before_infinity?(c) if ((abs rescue self) == Float::INFINITY)
+
+    if RangeExtd::Infinity.infinity? c
+      c.positive?
+    else
+      less_than_float_before_infinity?(c)
+    end
+  end
+end  # class Float
+
+
+#
+# = class Integer
+#
+# The same as {Numeric#>} and {Numeric#<}.  See them for the background.
+class Integer
+
+  alias_method :compare_than_integer_before_infinity?, :<=>  if ! self.method_defined?(:compare_than_integer_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <=>(c)
+    # Default if the special case INFINITY (never happens in Default, but a user may define Integer::INFINITY).
+    return compare_than_integer_before_infinity?(c) if ((abs rescue self) == Float::INFINITY)
+
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    compare_than_integer_before_infinity?(c)
+  end
+
+  alias_method :greater_than_integer_before_infinity?, :>  if ! self.method_defined?(:greater_than_integer_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def >(c)
+    # Default if self is not comparable (in case the Integer method is redifined by a user).
+    return greater_than_integer_before_infinity?(c) if !self.class.method_defined?(:>)
+
+    if RangeExtd::Infinity.infinity? c
+      c.negative?
+    else
+      greater_than_integer_before_infinity?(c)
+    end
+  end
+
+  alias_method :less_than_integer_before_infinity?, :<  if ! self.method_defined?(:less_than_integer_before_infinity?)	# No overwriting.
+  # Special case for comparison with a {RangeExtd::Infinity} instance.
+  def <(c)
+    # Default if self is not comparable (in case the Integer method is redifined by a user).
+    return less_than_integer_before_infinity?(c) if !self.class.method_defined?(:>)
+
+    if RangeExtd::Infinity.infinity? c
+      c.positive?
+    else
+      less_than_integer_before_infinity?(c)
+    end
+  end
+end  # class Integer
 

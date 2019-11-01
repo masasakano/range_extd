@@ -1,16 +1,16 @@
 -----
-(Version: 1.0)
-2019-10-30  Masa Sakano
-  * Release of Ver.1.0.
-  * Endless Range introduced in Ruby 2.6 is now fully supported.
-  * RangeError is raised now when it is appropriate in initialisation, where ArgumentError used to be raised.
-
------
-(Version: 1.0)
-2019-10-30  Masa Sakano
-  * Release of Ver.1.0.
-  * Endless Range introduced in Ruby 2.6 is now fully supported.
-  * RangeError is raised now when it is appropriate in initialisation, where ArgumentError used to be raised.
+(Version: 1.1)
+2019-11-01  Masa Sakano
+  * Significant upgrade: RangeExtd
+    * size of RangeExtd with an infinity now follows what Ruby Endless Range returns.
+      * Example: (?a..RangeExtd::Infinity::POSITIVE).size used to be Float::INFINITY, but now nil.
+    * RangeExtd::Infinity::POSITIVE etc now replaced with Float::INFINITY when it should be.
+  * RangeExtd::Infinity
+    * POSITIVE (or NEGATIVE) and Float::INFINITY are now NOT comparable. Description added to README.
+    * Newly redefined methods of ">" and "<" for RangeExtd::Infinity, as otherwise the comparison with Numeric fails as of Ruby 2.6 (I do not know whether it has been so or it has changed in recent versions of Ruby)
+    * New class methods of Infinity.infinity? and Infinity.infinite? in which the former excludes Float::INFINITY whereas the latter includes.
+    * Two unary operators (plus and minus) now supported.
+    * The methods "=", ">" and "<" redefined for Float and Integer (hence Rational) so they can be compared with this.
 
 -----
 (Version: 1.0)

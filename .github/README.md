@@ -68,22 +68,27 @@ I hope you find this package to be useful.
 
 Now, as of 2019 October, this fully supports [Endless
 Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
-introduced in Ruby 2.6.  It is released as Version 1.0 finally!
-
-#### NOTE: Relationship with Rangesmaller
-
-This package supersedes the obsolete
-[Rangesmaller](https://rubygems.org/gems/rangesmaller) package and class, with
-the added open-ended feature, and a different interface in creating a new
-instance. https://rubygems.org/gems/rangesmaller
+introduced in Ruby 2.6.  It is released as Version 1.* finally!
 
 #### NOTE: Relationship with Rangeary
 
 The class to handle multiple Ranges with objects of the same class (most
 typically Float), [Rangeary](https://rubygems.org/gems/rangeary) uses this
 library to fullest, because the concept of potentially open-ended Range on
-both begin and end is essential to realise Rangeary.
-https://rubygems.org/gems/rangeary
+both begin and end is essential to realise it.  For example, the negation of
+Range +(?a..?d)+ is Ranges +(-"Infinity-Character"...3)+ and
++(?d(exclusive).."Infinity-Character")+ and its negation is back to the
+original +(?a..?d)+.  Such operations are possible only with this class
+`RangeExtd` 
+
+Rangeary: https://rubygems.org/gems/rangeary
+
+#### NOTE: Relationship with Rangesmaller
+
+This package RangeExtd supersedes the obsolete
+[Rangesmaller](https://rubygems.org/gems/rangesmaller) package and class, with
+the added open-ended feature, and a different interface in creating a new
+instance. https://rubygems.org/gems/rangesmaller
 
 ## Install
 
@@ -433,18 +438,21 @@ RangeExtdクラスの定義は、おそらく、考え られる唯一のもの�
 Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 (終端のない Range)を正式サポートしました。よって、Version 1.0 をリリースしました!
 
+#### 注: Rangearyとの関係
+
+同クラス(典型的にはFloat)のオブジェクトからなる複数のRangeを扱うクラス
+[Rangeary](https://rubygems.org/gems/rangeary) は、本ライブラリを使い
+切っています。Rangeを実現するためには、始端と終端との両方で開いた可能 性があるRangeを扱うことが必須だからです。例えば、 Range
++(?a..?d)+ の否定は、複数Range +(-"Infinity(文字)"...3)+ と +(?d(始端除外).."Infinity(文字)")+
+であり、その否定は、元の +(?a..?d)+ です。このような演算は、`RangeExtd` があって初めて可能になります。
+
+Rangeary: https://rubygems.org/gems/rangeary
+
 #### 注: Rangesmallerとの関係
 
 このパッケージは、(今やサポートされていない) [Rangesmaller](https://rubygems.org/gems/rangesmaller)
 パッケージ及びクラスを 後継するものです。同クラスの機能に、無限に開いた範囲を許す機能が加わり、また、オ
 ブジェクト生成時のインターフェースが変更されています。 https://rubygems.org/gems/rangesmaller
-
-#### 注: Rangearyとの関係
-
-同クラス(典型的にはFloat)のオブジェクトからなる複数のRangeを扱うクラス
-[Rangeary](https://rubygems.org/gems/rangeary) は、本ライブラリを使い
-切っています。Rangeを実現するためには、始端と終端との両方で開いた可能 性があるRangeを扱うことが必須だからです。
-https://rubygems.org/gems/rangeary
 
 ## インストール
 

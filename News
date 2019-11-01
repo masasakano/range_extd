@@ -1,4 +1,8 @@
 -----
+(Version: 1.1) 2019-11-01
+ * Release of Ver.1.1.  A significant upgrade with some change in the specification of how to deal with infinities.
+
+-----
 (Version: 1.0) 2019-10-30
  * Release of Ver.1.0.  Supports Endless Range in Ruby 2.6.
 
