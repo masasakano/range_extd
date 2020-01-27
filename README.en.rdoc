@@ -361,11 +361,13 @@ existing code in principle.
 
 Extensive tests have been performed, as included in the package.
 
-
 == ToDo
 
 Nothing on the horizon.
 
+== History memo
+
+* <tt>((?a..?z) === "cc")</tt> would give false with Ruby 2.6.x or earlier, but true if later.
 
 == Final notes
 
@@ -735,6 +737,10 @@ RangeExtd と別の RangeExtd または Rangeの比較 (<tt><=></tt>) におい�
 
 特になし。
 
+
+== 履歴メモ
+
+* <tt>((?a..?z) === "cc")</tt> は、Ruby 2.6.x 以前は false を返していたが、2.7 以降は true を返す。
 
 == 終わりに
 

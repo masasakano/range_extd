@@ -1,4 +1,9 @@
 -----
+(Version: 1.1.1)
+2020-01-27  Masa Sakano
+  * Fixed warnings with Ruby-2.7
+
+-----
 (Version: 1.1)
 2019-11-01  Masa Sakano
   * Significant upgrade: RangeExtd

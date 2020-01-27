@@ -219,7 +219,8 @@ politely.
 For more detail, see its documents (YARD or RDoc-style documents embedded in
 the code, or see [RubyGems webpage](http://rubygems.org/gems/range_extd)).
 
-***Note*** `RangeExtd::Infinity::POSITIVE` is practically the same as [Endless
+***Note1:*** `RangeExtd::Infinity::POSITIVE` is practically the same as
+[Endless
 Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 introduced in Ruby 2.6 released in 2018 December!!  In other words, the
 official Ruby has finally implement a part of this library! However,
@@ -227,6 +228,26 @@ official Ruby has finally implement a part of this library! However,
 Range (it has no "boundless begin"), and hence this library still has some
 use, which supplements the mathematical incompleteness of the standard Range
 in the official Ruby.
+
+***Note2:*** As of Ver.1.1, the `RangeExtd::Infinity` class instances are not
+comparable with `Float::INFINITY`; for example,
+
+    RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
+
+Conceptionally, the former is a generalised object of the latter and hence
+they should not be **equal**.  See the reference of {RangeExtd::Infinity} for
+detail.  Note, the behaviour of Endless Range from Ruby 2.6 may feel a little
+odd, as follows:
+
+    num1 = (5..Float::INFINITY)
+    num2 = (5..)
+    num1.end != rnum2.end  # => true
+    num1.size              # => Infinity
+    num2.size              # => Infinity
+
+    str1 = (?a..)
+    str1.end == num2.end   # => true (because both are nil)
+    str1.size              # => nil
 
 ### RangeExtd Class
 
@@ -336,6 +357,12 @@ Extensive tests have been performed, as included in the package.
 
 Nothing on the horizon.
 
+## History memo
+
+*   `((?a..?z) === "cc")` would give false with Ruby 2.6.x or earlier, but
+    true if later.
+
+
 ## Final notes
 
 All the behaviours within RangeExtd (not Range), such as any comparison
@@ -366,7 +393,7 @@ Enjoy.
 ## Copyright etc
 
 Author
-:   Masa Sakano < imagine a_t sakano dot co dot uk >
+:   Masa Sakano < info a_t wisebabel dot com >
 License
 :   MIT.
 Warranty
@@ -676,6 +703,11 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 
 特になし。
 
+## 履歴メモ
+
+*   `((?a..?z) === "cc")` は、Ruby 2.6.x 以前は false を返していたが、2.7 以降は true を返す。
+
+
 ## 終わりに
 
 RangeExtd内部に閉じた(Rangeでなく)挙動、たとえば RangeExtd同士の比較などは、
@@ -701,7 +733,7 @@ Rangeの現在の挙 動には二度と戻りたくなくなることでしょ�
 ## 著作権他情報
 
 著者
-:   Masa Sakano < imagine a_t sakano dot co dot uk >
+:   Masa Sakano < info a_t wisebabel dot com >
 利用許諾条項
 :   MIT.
 保証

@@ -356,7 +356,7 @@ gem "minitest"
       end
 
       # Ruby 2.6 upwards
-      ra00 = (-2..)
+      ra00 = (-2..)  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       rae0 = RangeExtd.new(ra00)
       assert rae0.valid?
       assert_equal(-2,  rae0.begin)
@@ -384,7 +384,7 @@ gem "minitest"
       end
 
       # Ruby 2.6 upwards
-      ra00 = (Float::INFINITY...)
+      ra00 = (Float::INFINITY...)  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       rae0 = RangeExtd.new(ra00)
       assert rae0.valid?
       assert_equal Float::INFINITY,   rae0.begin
@@ -416,7 +416,7 @@ gem "minitest"
         return  # Before Ruby 2.6
       end
 
-      ra00 = (-Float::INFINITY...)
+      ra00 = (-Float::INFINITY...)  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       rae0 = RangeExtd.new(ra00)
       assert rae0.valid?
       assert_equal(-Float::INFINITY,   rae0.begin)
@@ -533,7 +533,7 @@ gem "minitest"
       assert_output('', /Infinity/i){RaE(RangeExtd::Infinity::NEGATIVE,  Float::INFINITY)}  # Warning = "RangeExtd component of the RangeExtd::Infinity object replaced with Float::INFINITY"
       capture_io{
         ra_b = RaE(InfN, InfF).begin  # RangeExtd::Infinity::NEGATIVE replaced with -Float::INFINITY
-        assert_equal    -InfF, ra_b
+        assert_equal(   -InfF, ra_b)
         assert_operator Float, '===', ra_b
       }
 
@@ -570,7 +570,7 @@ gem "minitest"
     end
 
     def test_new_invalid_endless_range01
-      ra00 = (nil..)
+      ra00 = (nil..)  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       refute RangeExtd.valid?(ra00)
       assert_raises(RangeError){ RangeExtd.new(ra00) }
 
@@ -1257,7 +1257,7 @@ gem "minitest"
 
     # For Ruby 2.6 and onwards
     def test_endlessRange_valid
-      assert  (0..).valid?
+      assert  (0..).valid?  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       assert  (0...).valid?
       refute  (true..).valid?
       refute  (nil...).valid?
@@ -1559,8 +1559,14 @@ gem "minitest"
 
       # RangeExtd#===
       assert  ((?D..?z) === ?c)
-      assert !((?a..?z) === "cc")
-      assert !((?B..?z) === 'dd')
+
+      if RUBY_VERSION < '2.7'
+        assert !((?a..?z) === "cc")
+        assert !((?B..?z) === 'dd')
+      else
+        assert  ((?a..?z) === "cc")
+        assert  ((?B..?z) === 'dd')
+      end
 
       # RangeExtd#equiv?
       assert  RangeExtd(2...7,true).equiv?(3..6)     # => true
@@ -1605,7 +1611,11 @@ gem "minitest"
       assert_equal [3], (1...3.1).last(1)
 
       # RangeExtd#minmax
-      assert_equal [0, 3], (0...3.5).minmax
+      if RUBY_VERSION < '2.7'
+        assert_equal [0, 3], (0...3.5).minmax
+      else
+        assert_raises(TypeError){ (0...3.5).minmax }	# => TypeError: cannot exclude non Integer end value
+      end
       assert_raises(TypeError){ (1.3...5).minmax }	# => TypeError: can't iterate from Float
 
       # RangeExtd#size

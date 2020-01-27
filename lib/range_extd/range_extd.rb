@@ -135,7 +135,7 @@ class RangeExtd < Range
     end
 
     # Note: the order of exclude_begin? and end? is reversed from the input!
-    arout = RangeExtd.send(:_get_init_args, *inar, hsopt)
+    arout = RangeExtd.send(:_get_init_args, *inar, **hsopt)
     # == [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
 
     ### The following routine is obsolete.
@@ -1620,7 +1620,11 @@ end	# class Range
 # Constant-form of {#RangeExtd}.
 # #RangeExtd(*) is equivalent to {#RangeExtd.new}.
 #
-def RangeExtd(*rest, &b)
-  RangeExtd.new(*rest, &b)
+# NOTE:
+#   "warning: Using the last argument as keyword parameters is deprecated; maybe ** should be added to the call"
+#   is raised if '**hs*' is completely omitted.  I do not know how to
+#   deal with this, other than adding **hs.
+def RangeExtd(*rest, **hs, &b)
+  RangeExtd.new(*rest, **hs, &b)
 end
 
