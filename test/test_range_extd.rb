@@ -167,6 +167,10 @@ gem "minitest"
       @foo = nil
     end
 
+    ####################################
+    # Ruby behaviours (to check out)
+    ####################################
+
     def test_object_compare
       assert_equal 0, (3 <=> 3)
       assert_equal 1, (4 <=> 3)
@@ -175,6 +179,95 @@ gem "minitest"
       assert_equal 0, (true <=> true)
       assert_equal 0, (IO <=> IO)
     end	# def test_object_compare
+
+    # Ruby-2.7 (and 3.1) default behaviours.
+    def test_ruby27_range01
+      num1 = (5..InfF)
+      num2 = (5..)
+      assert( num1.end != num2.end )
+      assert_equal InfF, num1.size
+      assert_equal InfF, num2.size
+
+      str1 = (?a..)
+      assert( str1.end != num1.end )
+      assert( str1.end == num2.end )
+      assert_nil str1.size, "For some reason, this is nil in Ruby 3.1"
+      assert_equal InfF, (..?z).size
+    end	# def test_ruby27_range
+
+    # Ruby-2.7 (and 3.1) default behaviours.
+    def test_ruby27_range_nil
+      assert_equal "..3", (..3).to_s
+      assert_equal "3..", (3..).to_s
+      assert_equal "3..", (3..nil).to_s
+      assert_equal "..3", (nil..3).to_s
+
+      assert( (nil..) == (..nil) )  # 
+      assert( (nil..) != (...nil))  # (because (I guess) exclude_end? differ)
+      assert( (...nil).exclude_end? )  # (because (I guess) exclude_end? differ)
+      assert_equal "abcdef", "abcdef"[..nil] # (i.e., it is interpreted as (0..IntegerInfinity)
+                           #    (n.b., nil.to_i==0; Integer(nil) #=> TypeError))
+      assert_raises(TypeError){ "abcdef"[..?a] } # raise: no implicit conversion of String into Integer (TypeError)
+      assert_equal "abcdef", "abcdef"[0..100]
+      assert_nil   "abcdef"[-100..100]
+
+      assert_equal InfF, (..nil).size
+
+      assert_nil (..nil).begin
+      assert_raises(RangeError){ (..nil).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError){ (..nil).last } # raise: cannot get the last element of endless range (RangeError)
+      assert_nil (..nil).end
+
+      assert( (..nil).cover? 5   )
+      assert( (..nil).cover? ?a  )
+      assert( (..nil).cover? [?a])
+      assert( (..nil).cover? nil )
+    end	# def test_ruby27_range_nil
+
+    # Ruby-2.7 (and 3.1) default behaviours.
+    def test_ruby27_range_int
+      num1 = (5..Float::INFINITY)
+      num2 = (5..)
+      assert( num1.end != num2.end)  # (because I guess (Float::INFINITY != nil))
+      assert_equal InfF, num1.size
+      assert_equal InfF, num2.size
+
+      assert (3...) == (3...nil)
+      assert (3..)  != (3...nil) #  (because I guess exclude_end? differ)
+
+      assert_equal InfF, (3..).size
+      assert_nil   (..3).begin  # => nil
+      assert_raises(RangeError){ (..3).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError){ (3..).last } # raise: cannot get the last element of endless range (RangeError)
+      assert_nil   (3..).end    # => nil
+      assert_raises(TypeError){ (..3).each{}} # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(TypeError){ (..3).to_a  } # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(RangeError){ (3..).to_a } # raise: `to_a': cannot convert endless range to an array (RangeError)
+      # assert (3..Float::INFINITY).to_a  # => Infinite loop!
+    end # def test_ruby27_range_int
+
+    # Ruby-2.7 (and 3.1) default behaviours.
+    def test_ruby27_range_string
+      assert((?a..).end   == (5..).end)   # (because both are nil)
+      assert((?a..).end   != (5..Float::INFINITY).end)
+      assert((..?a).begin == (..5).begin) # (because both are nil)
+      assert((..?a).begin != ((-Float::INFINITY)..5).begin)
+      assert_equal InfF, (..?a).size
+      assert_nil (?a..).size
+
+      assert_nil (..?a).begin
+      assert_raises(RangeError){ (..?a).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError){ (?a..).last } # raise: cannot get the last element of endless range (RangeError)
+      assert_nil (?a..).end
+      assert_raises(TypeError){ (..?a).each{}} # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(TypeError){ (..?a).to_a  } # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(RangeError){(?a..).to_a  } # raise: `to_a': cannot convert endless range to an array (RangeError)
+      assert_raises(ArgumentError){ (?a..Float::INFINITY).to_a } # raise: bad value for range (ArgumentError)  # b/c it is not String!
+    end # def test_ruby27_range_string
+
+    ####################################
+    # RangeExtd behaviours
+    ####################################
 
     # InfP (RangeExtd::Infinity::POSITIVE) and InfN (RangeExtd::Infinity::NEGATIVE)
     # are always comparable with any comparable objects except for
@@ -425,6 +518,21 @@ gem "minitest"
       assert_equal  ra00.exclude_end?, rae0.exclude_end?
       refute                           rae0.exclude_begin?
     end
+
+    #def test_new_endless_range04
+    #  # Ruby 2.7 and later
+    #  #
+    #  # Note this would raise a SytaxError for the versions before 2.7.
+
+    #  assert_equal  9, RangeExtd(..9).end
+    #  assert_equal ?d, RangeExtd(..?d).end
+    #  assert_equal ?d, RangeExtd(..?d).last
+    #  assert_equal ?d, RangeExtd(..?d, true).last
+    #  assert_nil       RangeExtd(..9).begin
+    #  assert_nil       RangeExtd(..9).first
+    #  assert_nil       RangeExtd(..?d).begin
+    #  assert_raises(RangeError){ (..?d).first} # raise: cannot get the first element of beginless range (RangeError)
+    #end
 
     def test_new_middle_strings
       aru = ['[','(in)','(ex)',', ','(ex)','(in)',']']
