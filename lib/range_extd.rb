@@ -1,31 +1,21 @@
 # -*- encoding: utf-8 -*-
 
 ## Load required files.
-err1st = nil
-req_files = %w(lib/range_extd/infinity/infinity)
+req_files = %w(range_extd/infinity)
 req_files.each do |req_file|
-  while ! req_file.empty?
-    begin
-      require req_file 
-    rescue LoadError => errLoad
-      err1st = errLoad if err1st.nil?
-      if %r@/@ =~ req_file
-        if req_file.sub!(%r@[^/]*/@, '').nil?	# Will search for the next directory down.
-          raise
-        end
-      else
-        req_file = ''
-        break
-      end
-    else
-      break
-    end
+  begin
+    require_relative req_file 
+  rescue LoadError
+    require req_file 
   end
-  if req_file.empty?
-    raise err1st
-  end
-end	# req_files.each do |req_file|
+end
 
+if $DEBUG
+  puts "NOTE: Library full paths:"
+  req_files.each do |elibbase|
+    p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/).uniq
+  end
+end
 
 # =Class RangeExtd
 #
@@ -36,20 +26,22 @@ end	# req_files.each do |req_file|
 #
 # Extended Range class that features:
 #  1. includes exclude_begin? (to exclude the "begin" boundary),
-#  2. allows open-ended range (to the infinity),
+#  2. allows open-ended range to the infinity (very similar to beginless/endless Range),
 #  3. defines NONE and ALL constants,
 #  4. the first self-consistent logical structure,
-#  5. complete backward compatibility within the built-in Range.
+#  5. complete compatibility with the built-in Range.
 #
 # The instance of this class is immutable, that is, you can not
 # alter the element once an instance is generated.
 #
+# This class has some constants
+#
 # What is valid is checked with the class method {RangeExtd.valid?}.
 # See the document of that method for the definition.
 #
-# To express open-ended ranges is simple; you just use either of
-# the two (negative and positive, or former and later) constants
-# in RangeExtd::Infinity class.  See the document for detail.
+# This class has two constants:
+# {RangeExtd::NONE} representing an empty range and 
+# {RangeExtd::ALL} representing the entire range, both in the abstract sense.
 #
 # @example An instance of a range of 5 to 8 with both ends being exclusive is created as
 #   r = RangeExtd(5...8, true) 
@@ -93,7 +85,7 @@ class RangeExtd < Range
   #   @option opts [Boolean] :exclude_end If specified, this has the highest priority, or false in default.
   #
   # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
-  #   @param obj_begin [Object] Any object that is {Comparable} with end
+  #   @param obj_begin [Object] Any object that is +Comparable+ with end
   #   @param obj_end [Object] Any object that is Comparable with begin
   #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
@@ -101,9 +93,9 @@ class RangeExtd < Range
   #   @option opts [Boolean] :exclude_end If specified, this has the higher priority, or false in default.
   #
   # @overload new(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
-  #   @param obj_begin [Object] Any object that is {Comparable} with end
+  #   @param obj_begin [Object] Any object that is +Comparable+ with end
   #   @param string_form [Object] String form (without pre/postfix) of range expression set by {RangeExtd.middle_strings=}()
-  #   @param obj_end [Object] Any object that is Comparable with begin
+  #   @param obj_end [Object] Any object that is +Comparable+ with begin
   #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
   #   @option opts [Boolean] :exclude_begin If specified, this has the higher priority, or false in default.
@@ -126,17 +118,25 @@ class RangeExtd < Range
   # @raise [ArgumentError] particularly if the range to be created is not {#valid?}.
   def initialize(*inar, **hsopt)	# **k expression from Ruby 1.9?
 
+    # This is true only for RangeExtd::NONE,
+    # which is identical to +RangeExtd(nil, nil, true, true)+ without this.
+    @is_none = false
+
     if inar[4] == :Constant
-      # Special case to create two Constants
-      super(*inar[0..2])
+      # Special case to create two Constants (NONE and ALL)
       @rangepart = (inar[2] ? (inar[0]...inar[1]) : (inar[0]..inar[1]))
       @exclude_end, @exclude_begin = inar[2..3]
+
+      # In Ruby-2.7+ and hence RangeExtd Ver.2+, RangeExtd::NONE looks very similar to (nil...nil)
+      # except RangeExtd::NONE.@exclude_begin == true
+      @is_none = (@rangepart.begin.nil? && @rangepart.end.nil? && @exclude_begin && @exclude_end)
+      raise(ArgumentError, "NONE has been already defined.") if @is_none && self.class.const_defined?(:NONE)  
+      super(*inar[0..2])
       return
     end
 
-    # Note: the order of exclude_begin? and end? is reversed from the input!
     arout = RangeExtd.send(:_get_init_args, *inar, **hsopt)
-    # == [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
+    # == [RangeBeginValue, RangeEndValue, exclude_begin?, exclude_end?]
 
     ### The following routine is obsolete.
     ### Users, if they wish, should call RangeExtd::Infinity.overwrite_compare() beforehand.
@@ -171,30 +171,27 @@ class RangeExtd < Range
       raise RangeError, "the combination of the arguments does not constitute a valid RangeExtd instance."
     end
 
+    @exclude_end   = arout.pop
     @exclude_begin = arout.pop
-    @exclude_end   = arout[-1]
-    @rangepart = Range.new(*arout)
-    super(*arout)
-
-  end	# def initialize(*inar)
+    artmp = [arout[0], arout[1], @exclude_end]
+    @rangepart = Range.new(*artmp)
+    super(*artmp)
+  end	# def initialize(*inar, **hsopt)
 
 
   # true if self is identical to {RangeExtd::NONE}.
+  #
+  # Overwriting {Range#is_none?}
   # This is different from {#==} method!
+  #
   # @example 
-  #    RangeExtd(0,0,false,false) == RangeExtd::NONE  # => true
-  #    RangeExtd(0,0,false,false).empty?    # => true
-  #    RangeExtd(0,0,false,false).is_none?  # => false
+  #    RangeExtd(0,0,true,true).valid?    # => true
+  #    RangeExtd(0,0,true,true) == RangeExtd::NONE  # => true
+  #    RangeExtd(0,0,true,true).empty?    # => true
+  #    RangeExtd(0,0,true,true).is_none?  # => false
   #    RangeExtd::NONE.is_none?     # => true
   def is_none?
-    self.begin.nil? && self.end.nil? && @exclude_begin && @exclude_end	# Direct comparison with object_id should be OK?
-  end
-
-  # true if self is identical to {RangeExtd::ALL} ({#==} does not mean it at all!)
-  # @example
-  #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?  # => false
-  def is_all?
-    self.begin.object_id == Infinity::NEGATIVE.object_id && self.end.object_id == Infinity::POSITIVE.object_id && !@exclude_begin && !@exclude_end	# Direct comparison with object_id should not work for this one!! (because users can create an identical one.)
+    @is_none
   end
 
 
@@ -232,7 +229,7 @@ class RangeExtd < Range
   # 
   # @return [Boolean]
   def ==(r)
-    re_equal_core(r, :==)
+    _re_equal_core(r, :==)
   end	# def ==(r)
 
   # The same as {#==} but it uses eql?() as each comparison.
@@ -249,7 +246,7 @@ class RangeExtd < Range
   #   (1.0<...1.0).eql?(3<...4)  # => false
   #
   def eql?(r)
-    re_equal_core(r, :eql?)
+    _re_equal_core(r, :eql?)
   end	# def eql?(r)
 
 
@@ -264,7 +261,7 @@ class RangeExtd < Range
   # In the case of the former, after finite trials of [#succ] from ?c, it reaches the end (?z).
   # In the latter, after finit trials of [#succ] from the begin ?a, it reaches the end (?z).
   # Therefore it is theoretically possible to prove it (n.b., the actual
-  # algorithm of built-in {Range#include?} is different and cheating!
+  # algorithm of built-in +Range#include?+ is different and cheating!
   # See below.).
   #
   # However, in the case of
@@ -276,11 +273,11 @@ class RangeExtd < Range
   #
   # Note
   #    (?B..?z) === 'dd'  # => false
-  # as Ruby's {Range} knows the algorithm of {String#succ} and {String#<=>}
-  # and specifically checks with it, before using {Enumerable#include?}.
+  # as Ruby's {Range} knows the algorithm of +String#succ+ and +String#<=>+
+  # and specifically checks with it, before using +Enumerable#include?+.
   # {https://github.com/ruby/ruby/blob/trunk/range.c}
   #
-  # Therefore, even if you change the definition of {String#succ}
+  # Therefore, even if you change the definition of +String#succ+
   # so that 'B'.succ => 'dd', 'dd'.succ => 'z', as follows,
   #    class String
   #      alias :succ_orig :succ
@@ -294,7 +291,7 @@ class RangeExtd < Range
   #        end
   #      end
   #    end
-  # the resutl of {Range#===} will unchange;
+  # the resutl of +Range#===+ will unchange;
   #   (?B..?z) === 'dd'  # => false
   #   (?B..?z).to_a      # => ["B", "dd", "z"]
   #
@@ -443,8 +440,8 @@ class RangeExtd < Range
   #    (Rational(36,10)..5).bsearch{|i| ary[i] >= 11}	=> # TypeError: can't do binary search for Rational (Ruby 2.1)
   #    (3..Rational(61,10)).bsearch{|i| ary[i] >= 11}	=> # TypeError: can't do binary search for Fixnum (Ruby 2.1)
   #
-  # In short, bsearch works only with Integer and/or Float (as in Ruby 2.1).
-  # If either of begin and end is an Float, the search is conducted in Float and the returned value will be Float, unless nil.
+  # +Range#bsearch+ works only with Integer and/or Float (as in Ruby 2.1), not even Rational (as in Ruby 3.1).
+  # If either of begin and end is a Float, the search is conducted in Float and the returned value will be a Float, unless nil.
   # If Float, it searches on the binary plane.
   # If Integer, the search is conducted on the descrete Integer points only,
   # and no search will be made in between the adjascent integers.
@@ -452,7 +449,7 @@ class RangeExtd < Range
   # Given that, {RangeExtd#bsearch} follows basically the same, even when exclude_begin? is true.
   # If either end is Float, it searches between begin*(1+Float::EPSILON) and end.
   # If both are Integer, it searches from begin+1.
-  # When {#exclude_begin?} is false, {RangeExtd#bsearch} is identical to {Range#bsearch}.
+  # When {#exclude_begin?} is false, {RangeExtd#bsearch} is identical to +Range#bsearch+.
   #
   def bsearch(*rest, &bloc)
     if is_none?	# No need of null?(), supposedly!
@@ -482,94 +479,77 @@ class RangeExtd < Range
   end	# def bsearch(*rest, &bloc)
 
 
-  # See {#include?} or {#===}, and {Range#cover?}
+  # See {#include?} or {#===}, and +Range#cover?+
   def cover?(i)
     # ("a".."z").cover?("cc")	# => true
     # (?B..?z).cover?('dd')	# => true  (though 'dd'.succ would never reach ?z)
 
     return false if is_none?	# No need of null?(), supposedly!
 
-    if @exclude_begin
-      if self.begin == i
-        false
-      else
-        @rangepart.send(__method__, i)
-      end
+    if @exclude_begin && self.begin == i
+      false
     else
       @rangepart.send(__method__, i)
     end
   end	# def cover?(i)
 
 
-  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() or {#rangepart} does not have a method of [#succ], then even if no block is given, this method raises TypeError straightaway.
+  # slightly modified for {#exclude_begin?} being true
+  #
+  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() (+@rangepart+) does not have a method of [#succ], then even if no block is given, this method raises TypeError straightaway.
   # @return [RangeExtd] self
   # @return [Enumerator] if block is not given.
-  #
   def each(*rest, &bloc)
     # (1...3.5).each{|i|print i}	# => '123' to STDOUT
     # (1.3...3.5).each	# => #<Enumerator: 1.3...3.5:each>
     # (1.3...3.5).each{|i|print i}	# => TypeError: can't iterate from Float
     # Note: If the block is not given and if @exclude_begin is true, the self in the returned Enumerator is not the same as self here.
-    if @exclude_begin	# including RangeExtd::NONE
-      if defined? self.begin.succ
-        ret = Range.new(self.begin.succ,self.end,exclude_end?).send(__method__, *rest, &bloc)
-        if block_given?
-          self
-        else
-          ret
-        end
-      elsif is_none?
-        raise TypeError, "can't iterate for NONE range"
-      else
-        raise TypeError, "can't iterate from "+self.begin.class.name
-      end
-    else
-      @rangepart.send(__method__, *rest, &bloc)
-    end
+
+    _step_each_core(__method__, *rest, &bloc)
   end
 
+  # Core routine for {#each} and {#step}
+  #
+  # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() or {#rangepart} does not have a method of [#succ], then even if no block is given, this method raises TypeError straightaway.
+  # @return [RangeExtd] self
+  # @return [Enumerator] if block is not given.
+  def _step_each_core(method, *rest, &bloc)
+    raise TypeError, "can't iterate for NONE range" if is_none?
 
-  # Like {Range#last}, if no argument is given, it behaves like {#begin}(), that is, it returns the initial value, regardless of {#exclude_begin?}.
-  # However, if an argument is given (nb., acceptable since Ruby 1.9) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ().
+    if block_given?
+      # when a block is given to {#each}, self should be returned.
+      _converted_rangepart(consider_exclude_begin: true, raises: true ).send(method, *rest, &bloc)
+      self
+    else
+      _converted_rangepart(consider_exclude_begin: true, raises: false).send(method, *rest)
+    end
+  end
+  private :_step_each_core
+
+  # Like +Range#last+, if no argument is given, it behaves like {#begin}(), that is, it returns the initial value, regardless of {#exclude_begin?}.
+  #
+  # If an argument is given (nb., acceptable since Ruby 1.9.2) when {#exclude_begin?} is true, it returns the array that starts from {#begin}().succ(), in the same way as +Range#last+ with {#exclude_end?} of +true+.
+  #
+  # The default behaviours are:
+  #
+  #   (1...3.1).last	# => 3.1
+  #   (1...3.1).last(1)	# => [3]
+  #   (1...3.0).last(1)	# => [2]
+  #   (3.0..8).first(1) # raise: can't iterate from Float (TypeError)
+  #
   # @raise [TypeError] if the argument (Numeric) is given and if {#exclude_begin?} is true, yet if {#begin}().succ is not defined, or yet if {#is_none?}
-  # @param rest [Integer] Optional.  Must be non-negative.  Consult {Range#first} for detail.
+  # @raise [RangeError] "cannot get the first element of beginless range" as per Range.
+  # @raise [ArgumentError] if more than 1 arguments are specified (delegated to {Range})
+  # @param rest [Integer] Optional.  Must be non-negative.  Consult +Range#first+ for detail.
   # @return [Object] if no argument is given, equivalent to {#end}.
   # @return [Array] if an argument is given.
   def first(*rest)
-    # (1...3.1).last	# => 3.1
-    # (1...3.1).last(1)	# => [3]
-    if ! @exclude_begin	# hence, not NONE.
-      @rangepart.first(*rest)
-    else
-      case rest.size
-      when 0
-        self.begin
-      when 1
-        if (RUBY_VERSION < "1.9.1") && (1 == rest[0])	# Range#first() does not accept an argument in Ruby 1.8.
-          raise ArgumentError, "wrong number of arguments (#{rest.size} for 0) (Use Ruby 1.9.2 or later)."
-        end
+    if is_none?
+      raise RangeError, "cannot get the first element of RangeExtd::NONE"
+    end
 
-        ## Check the argument.
-        Array.new[ rest[0] ]	# Check Type of rest[0] (if invalid, it should raise TypeError)
-
-        begin
-          if rest[0] < 0
-            raise ArgumentError, "negative array size (or size too big)"
-          end
-        rescue NoMethodError
-          # Should not happen, but just to play safe.
-        end
-
-        ## Main
-        if ! defined? self.begin.succ
-          raise TypeError, "can't iterate from "+self.begin.class.name
-        end
-
-        Range.new(self.begin.succ, self.end, exclude_end?).send(__method__, *rest)
-      else
-        raise ArgumentError, "wrong number of arguments (#{rest.size} for 0..1)"
-      end
-    end		# if ! @exclude_begin
+    ran = _converted_rangepart(transform_to_nil: false, consider_exclude_begin: (1 == rest.size && exclude_begin?))
+    ran.send(__method__, *rest)
   end	# def first(*rest)
 
 
@@ -599,7 +579,8 @@ class RangeExtd < Range
   end
 
 
-  # See {Range#last}.
+  # Updated version of +Range#last+, considering {#exclude_begin?}.
+  #
   # If either (let alone both) side of the edge is Infinity, you can not give
   # an argument in practice, the number of the members of the returned array.
   #
@@ -607,41 +588,55 @@ class RangeExtd < Range
   # @return [Object] if no argument is given, equivalent to {#end}.
   # @return [Array] if an argument is given.
   def last(*rest)
-    return nil if null?
-    nSize = rest.size
-    case nSize
-    when 0
-      self.end
-    when 1
-        if (RUBY_VERSION < "1.9.1") && (1 == rest[0])	# Range#first() does not accept an argument in Ruby 1.8.
-          raise ArgumentError, "wrong number of arguments (#{rest.size} for 0) (Use Ruby 1.9.2 or later)."
-        end
-
-      if  defined?(self.begin.infinity?) && self.begin.infinity? || self.begin == -Infinity::FLOAT_INFINITY
-        raise TypeError, "can't iterate from "+self.begin.to_s
-      elsif defined?(self.end.infinity?) && self.end.infinity?   || self.end   ==  Infinity::FLOAT_INFINITY
-        raise TypeError, "can't get elements to "+self.end.to_s
-      elsif ! defined? self.begin.succ
-        raise TypeError, "can't iterate from "+self.begin.class.name
-      else
-        @rangepart.send(__method__, *rest)
-      end
-    else
-      raise ArgumentError, "wrong number of arguments (#{rest.size} for 0..1)"
+    if is_none?
+      raise RangeError, "cannot get the last element of RangeExtd::NONE"
     end
+
+    _converted_rangepart(transform_to_nil: false).send(__method__, *rest)
   end	# def last(*rest)
 
+
+  # Converts RangeExtd::Infinity to nil in @rangepart
+  #
+  # @param consider_exclude_begin [Boolean] If true (Default), and if {#exclude_begin?} is true, the first element is ignored.  Note the resultant Range may be +invalid+.
+  # @param transform_to_nil [Boolean] If true (Default), {RangeExtd::Infinity} objects are transformed into nil when appropriate (i.e., {RangeExtd::Infinity::NEGATIVE} should be {RangeExtd#begin} and not at the end, and vice versa).
+  # @param raises [Boolean] If true (Def: false), and if {#exclude_begin?} is true but [#succ] is not defined for {#begin}, this routine raises an Exception as per (almost) Ruby default.
+  # @return [Range]
+  def _converted_rangepart(consider_exclude_begin: true, transform_to_nil: true, raises: false)
+    rbeg = @rangepart.begin
+    if consider_exclude_begin && exclude_begin?
+      if rbeg.respond_to? :succ
+        rbeg = rbeg.succ
+      elsif raises
+        if rbeg.nil?
+          raise RangeError, "cannot get the first element of beginless range"
+        elsif is_none?	# No need of null?(), supposedly!
+          raise RangeError, "cannot get the first element of NONE range"
+        else
+          # This includes {RangeExtd::Infinity} class objects (RangeExtd::Infinity.infinity?(rbeg) == true) and Float::INFINITY.
+          raise TypeError, "can't iterate from "+self.begin.class.name
+        end
+      end
+    end
+
+    rbeg = nil if RangeExtd::Infinity::NEGATIVE == rbeg && transform_to_nil
+    rend = @rangepart.end
+    rend = nil if RangeExtd::Infinity::POSITIVE == rend && transform_to_nil
+
+    Range.new(rbeg, rend, exclude_end?)
+  end
+  private :_converted_rangepart
 
   # See {#first} for the definition when {#exclude_begin?} is true.
   #
   def min(*rest, &bloc)
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
   # See {#first} for the definition when {#exclude_begin?} is true.
   #
   def min_by(*rest, &bloc)
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
 
@@ -652,7 +647,7 @@ class RangeExtd < Range
     # (1.3...5).minmax	# => TypeError: can't iterate from Float
     # Note that max() for the same Range raises an exception.
     # In that sense, it is inconsistent!
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
   # See {#first} for the definition when {#exclude_begin?} is true.
@@ -661,31 +656,31 @@ class RangeExtd < Range
     # (0...3.5).minmax	# => [0, 3]
     # Note that max() for the same Range raises an exception.
     # In that sense, it is inconsistent!
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
 
   # See {#first} for the definition when {#exclude_begin?} is true.
   #
   def max(*rest, &bloc)
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
   # See {#first} for the definition when {#exclude_begin?} is true.
   #
   def max_by(*rest, &bloc)
-    re_min_max_core(__method__, *rest, &bloc)
+    _re_min_max_core(__method__, *rest, &bloc)
   end
 
 
-  # Implementation of {Range#size} to this class.
+  # Implementation of +Range#size+ to this class.
   #
   # It is essentially the same, but the behaviour when {#exclude_begin?} is true
   # may not always be natural.
   # See {#first} for the definition when {#exclude_begin?} is true.
   #
-  # {Range#size} only works for Numeric ranges.
-  # And in {Range#size}, the value is calculated when the initial value is
+  # +Range#size+ only works for Numeric ranges.
+  # And in +Range#size+, the value is calculated when the initial value is
   # non-Integer, by stepping by 1.0 from the {#begin} value, and the returned
   # value is an integer.
   # For example,
@@ -746,18 +741,19 @@ class RangeExtd < Range
   #   (Float::INFINITY..Float::INFINITY).size
   #
   # has changed (I do not know in which Ruby version)!
-  # It used to be 0.  However, As of Ruby 2.6, it is +FloatDomainError: NaN+
+  # It used to be 0 (in Ruby-2.1).  However, As of Ruby 2.6, it is +FloatDomainError: NaN+
   # Again this class now follows Ruby's default ({RangeExtd} Ver.1.0 or later).
   #
   # @note When both ends n are the same INFINITY (of the same parity),
   #   +(n..n).size+ used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
   #   This routine follows what Ruby produces, depending on Ruby's version it is run on.
   #
-  # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how {Range#size} behaves (in Japanese).
+  # @see http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-list/49797 [ruby-list:49797] from matz for how +Range#size+ behaves (in Japanese).
   #
   # @return [Integer]  0 if {RangeExtd::NONE}
   # @return [Float]  Float::INFINITY if either (or both) the end is infinity, regardless of the class of the elements. 
   # @return [nil] if the range is non-Numeric.
+  # @raise [FloatDomainError] (Infinity..Infinity).size (as in Ruby-3.1, though it used to be 0 in Ruby-2.1)
   def size(*rest)
     # (1..5).size	# => 5
     # (1...5).size	# => 4
@@ -770,92 +766,60 @@ class RangeExtd < Range
     # (1.5...4.5).size	# => 3
     # (0...Float::INFINITY).size	# => Infinity
 
-    if is_none?	# No need of null?(), supposedly!
-      return 0
+    return 0 if is_none?	# No need of null?(), supposedly!
+      
+    if self.begin.nil? || self.end.nil?   # RangeExtd#begin/end can be nil only in Ruby-2.7+/2.6+
+      # Behaves as Ruby does -
+      #  Infinity::FLOAT_INFINITY for Numeric and nil, but nil for any other
+      #  {#exclude_end?} does not matter.
+      return (self.begin..self.end).size
+    end
 
-    ### (Infinity..Infinity) => 0  (as in Ruby 2.1)
-    # elsif self.begin().infinity? || self.end().infinity?
-    #   return Infinity::FLOAT_INFINITY
+    rbeg = self.begin
+    rend = self.end
 
-    # Checking Infinity.
-    # Note (Infinity..Infinity) => 0  (Range as in Ruby 2.1)
-    # however, 
-    elsif (defined?(self.begin.infinity?) && self.begin.infinity? || self.begin == -Infinity::FLOAT_INFINITY) ||
-          (defined?(self.end.infinity?)   && self.end.infinity?   || self.end == Infinity::FLOAT_INFINITY) ||
-          (self.end.nil?)  # RangeExtd#end can be nil only for Ruby-2.6
-      if self.begin == self.end
-        # This varies, depending on Ruby's version!  It used to be 0.  As of Ruby 2.6, it is FloatDomainError: NaN.
-        return (Float::INFINITY..Float::INFINITY).size
-        # return 0
-      elsif self.end.nil?
-        # Behaves as Ruby does -
-        #  Infinity::FLOAT_INFINITY for Numeric and nil for any other
-        return (self.begin..nil).size
+    # Either or both sides are (general or Float) Infinity
+    if RangeExtd::Infinity.infinite?(rbeg) || RangeExtd::Infinity.infinite?(rend)
+      return @rangepart.send(__method__, *rest)  # delegates to {Range#size}
+    end
+
+    return @rangepart.send(__method__, *rest) if !exclude_begin?
+
+    # Now, {#exclude_begin?} is true:
+    begin
+      _dummy = 1.0 + rbeg	# _dummy to suppress warning: possibly useless use of + in void context
+    rescue TypeError
+      # Non-Numeric
+      if defined? rbeg.succ
+        return Range.new(rbeg.succ, rend, exclude_end?).send(__method__, *rest)	# => nil in Ruby 2.1+
       else
-        return Infinity::FLOAT_INFINITY
+        return nil	# See the line above.
+        # raise TypeError, "can't iterate from "+self.begin.class.name
       end
+    end
 
-    elsif @exclude_begin
-
-      begin
-        _dummy = 1.0 + self.begin()	# _dummy to suppress warning: possibly useless use of + in void context
-
-        # Numeric
-        if defined? (self.begin().succ)
-          Range.new(self.begin().succ, self.end, exclude_end?).send(__method__, *rest)
-        else
-          size_no_exclude = Range.new(self.begin, self.end).send(__method__, *rest)	# exclude_end? == true, ie., Range with both ends inclusinve.
-          diff = self.end - self.begin
-          if diff.to_i == diff		# Integer difference
-            return size_no_exclude - 1	# At least exclude_begin?==true (so exclude_end? does not matter)
-          else
-            return size_no_exclude
-          end
-        end
-      rescue TypeError
-        # Non-Numeric
-        if defined? self.begin().succ
-          Range.new(self.begin().succ, self.end, exclude_end?).send(__method__, *rest)	# => nil in Ruby 2.1
-        else
-          nil	# See the line above.
-          # raise TypeError, "can't iterate from "+self.begin.class.name
-        end
-
-      end
-
+    # Numeric
+    if rbeg.respond_to? :succ
+      Range.new(rbeg.succ, rend, exclude_end?).send(__method__, *rest)
     else
-      @rangepart.send(__method__, *rest)
+      size_no_exclude = Range.new(rbeg, rend).send(__method__, *rest)	# exclude_end? == true, ie., Range with both ends inclusinve.
+      diff = self.end - self.begin
+      if diff.to_i == diff		# Integer difference
+        return size_no_exclude - 1	# At least exclude_begin?==true (so exclude_end? does not matter)
+      else
+        return size_no_exclude
+      end
     end
   end	# def size
 
 
   # See {#each}.
+  #
   # @raise [TypeError] If {#exclude_begin?} is true, and {#begin}() does not have the method [#succ], then even if no block is given, this method raises TypeError straightaway.
   # @return [RangeExtd] self
   # @return [Enumerator] if block is not given.
-  #
   def step(*rest, &bloc)
-    # (1...3.5).each{|i|print i}	# => '123' to STDOUT
-    # (1.3...3.5).each	# => #<Enumerator: 1.3...3.5:each>
-    # (1.3...3.5).each{|i|print i}	# => TypeError: can't iterate from Float
-    # Note: If the block is not given and if exclude_begin?() is true, the self in the returned Enumerator is not the same as self here.
-
-    if @exclude_begin	# including RangeExtd::NONE
-      if defined? self.begin.succ
-        ret = Range.new(self.begin.succ,self.end,exclude_end?).send(__method__, *rest, &bloc)
-        if block_given?
-          self
-        else
-          ret
-        end
-      elsif is_none?	# No need of null?(), supposedly!
-        raise TypeError, "can't iterate for NONE range"
-      else
-        raise TypeError, "can't iterate from "+self.begin.class.name
-      end
-    else
-      @rangepart.send(__method__, *rest, &bloc)
-    end
+    _step_each_core(__method__, *rest, &bloc)
   end
 
 
@@ -865,7 +829,15 @@ class RangeExtd < Range
 
   # Private class method to evaluate the arguments.
   #
+  # @note The specification changed from RangeExtd Ver.1 to Ver.2.
+  #    In Ver.1 or earlier, this returns [begin, end, exclude_end, exclude_begin]
+  #    In Ver.2+, this returns [begin, end, exclude_begin, exclude_end]
+  #    Notice the third and fourth elements are swapped. Now it is in line
+  #    with {RangeExtd.new}.
+  #
+  # @param (see RangeExtd#initialize) (or valid)
   # @raise [ArgumentError] if the input format is invalid (otherwise the caller may raise RangeError (it depends))
+  # @return [Array<Object, Object, Boolean, Boolean>] 4-compoents: [begin, end, exclude_begin, exclude_end]
   def self._get_init_args(*inar, **hsopt)
     nMin = 1; nMax = 5
     if inar.size < nMin || nMax < inar.size
@@ -903,8 +875,6 @@ class RangeExtd < Range
       end
 
       beginend = [inar[0].begin, inar[0].end]
-      # arRet = [inar[0].begin, inar[0].end, exclude_end, exclude_begin]
-      # @rangepart = Range.new(inar[0].begin, inar[0].end, exclude_end)
 
     when :object
       nMin = 2; nMax = 5
@@ -924,8 +894,8 @@ class RangeExtd < Range
       # Originally, defined?(inar[1].=~) seemed enough.  But as of Ruby 2.6 (maybe even before),
       # Numeric has :=~ method as well!
       if (inar.size > 2 &&
-          inar[1].class.method_defined?(:=~) &&
-          inar[1].class.method_defined?(:to_str))
+          inar[1].respond_to?(:=~) &&
+          inar[1].respond_to?(:to_str))
         begin
           cmp = (inar[0] <=> inar[2]).abs
         rescue
@@ -936,16 +906,8 @@ class RangeExtd < Range
           # Hence all the default values are overwritten.
           beginend = [inar[0], inar[2]]
           hsFlag[:excl_offset] = 1
-          if $1 == @@middle_strings[1]
-            exclude_begin = false
-          else
-            exclude_begin = true
-          end
-          if $2 == @@middle_strings[4]
-            exclude_end   = true
-          else
-            exclude_end   = false
-          end
+          exclude_begin = ($1 != @@middle_strings[1])
+          exclude_end   = ($2 == @@middle_strings[4])
         else
           nMin = 2; nMax = 4
           if inar.size > nMax
@@ -967,9 +929,6 @@ class RangeExtd < Range
         exclude_end   = (true ^! inar[3+hsFlag[:excl_offset]])	# 4th or 5th argument
       end
 
-      # arRet = [inar[0], inar[1], exclude_end, exclude_begin]
-      # @rangepart = Range.new(inar[0], inar[1], exclude_end)
-
     else
       raise	# (for coding safety)
     end		# case hsFlag[:prm1st]
@@ -981,23 +940,23 @@ class RangeExtd < Range
       exclude_end   = (hsopt[:exclude_end] && true)
     end
 
-    # [RangeBeginValue, RangeEndValue, exclude_end?, exclude_begin?]
-    _normalize_infinity_float(beginend) + [exclude_end, exclude_begin]
+    # [RangeBeginValue, RangeEndValue, exclude_begin?, exclude_end?]
+    _normalize_infinity_float(beginend) + [exclude_begin, exclude_end]
   end	# def self._get_init_args(*inar)
   private_class_method :_get_init_args	# From Ruby 1.8.7 (?)
 
   # Replaces {RangeExtd::Infinity} with {Float::INFINITY} when appropriate
   #
-  # @param beginend [Array] 2-compoents
-  # @return [Array] 2-compoents
+  # @param beginend [Array] 2-compoents(begin, end)
+  # @return [Array] 2-compoents(begin, end)
   def self._normalize_infinity_float(beginend)
     is_begin_inf = Infinity.infinity?(beginend[0])
     return beginend if is_begin_inf ^! Infinity.infinity?(beginend[1])
 
     # Now, only one of them is a {RangeExtd::Infinity} type object.
-    if is_begin_inf && beginend[1].class.method_defined?(:divmod)
+    if is_begin_inf && beginend[1].respond_to?(:divmod)
       [_normalize_infinity_float_core(beginend[0]), beginend[1]] # "begin" is Infinity
-    elsif beginend[0].class.method_defined?(:divmod)
+    elsif beginend[0].respond_to?(:divmod)
       [beginend[0], _normalize_infinity_float_core(beginend[1])] # "end" is Infinity
     else
       beginend
@@ -1009,7 +968,7 @@ class RangeExtd < Range
   # @return [RangeExtd::Infinity, Float] +/-Float::INFINITY if Float
   def self._normalize_infinity_float_core(inf)
     msg = 'RangeExtd component of the RangeExtd::Infinity object replaced with Float::INFINITY.'
-    warn msg if !$VERBOSE.nil?
+    warn msg if $DEBUG || $VERBOSE
     (inf.positive? ? 1 : -1) * Float::INFINITY
   end
   private_class_method :_normalize_infinity_float_core  # From Ruby 1.8.7 (?)
@@ -1018,7 +977,7 @@ class RangeExtd < Range
   # Returns true if the range to be constructed (or given) is valid,
   # as a range, accepted in {RangeExtd}.
   #
-  # This routine is also impremented as a method in {Range},
+  # This routine is also implemented as a method in {Range},
   # and accordingly its sub-classes.
   #
   # This routine is called from {RangeExtd.new}, hence
@@ -1028,23 +987,29 @@ class RangeExtd < Range
   #
   # 1. The {#begin} and {#end} elements must be Comparable to each other,
   #    and the comparison results must be consistent betwen the two.
-  #    The two sole exceptions are {RangeExtd::NONE} and Endless Range
-  #    introduced in Ruby 2.6 (see below for the exceptions), both of which are valid.
-  #    For example, (nil..nil) is NOT valid (nb., it raised Exception in Ruby 1.8).
-  # 2. Except for {RangeExtd::NONE}, {#begin} must have the method +<=+.
-  #    Therefore, some Endless Ranges (Ruby 2.6 and later) like (true..) are *not* valid.
-  #    Note even "true" has the method +<=>+ and hence checking +<=+ is essential.
-  # 3. {#begin} must be smaller than or equal to {#end},
+  #    The three exceptions are {RangeExtd::NONE} and Beginless and Endless Ranges
+  #    introduced in Ruby 2.7 and 2.6, respectively (see below for the exceptions),
+  #    which are all valid.  Accordingly, +(nil..nil)+ is
+  #    valid in {RangeExtd} Ver.1.0+ (nb., it used to raise Exception in Ruby 1.8).
+  # 2. Except for {RangeExtd::NONE} and Beginless Range, {#begin} must have the method +<=+.
+  #    Therefore, some Endless Ranges (Ruby 2.6 and later) like +(true..)+ are *not* valid.
+  #    Note even "+true+" has the method +<=>+ and hence checking +<=+ is essential.
+  # 3. Similarly, except for {RangeExtd::NONE} and Endless Range, {#end} must have the method +<=+.
+  #    Therefore, some Beginless Ranges (Ruby 2.7 and later) like +(..true)+ are *not* valid.
+  # 4. {#begin} must be smaller than or equal to {#end},
   #    that is, ({#begin} <=> {#end}) must be either -1 or 0.
-  # 4. If {#begin} is equal to {#end}, namely, ({#begin} <=> {#end}) == 0,
-  #    the exclude status of the both ends must agree.
-  #    That is, if the {#begin} is excluded, {#end} must be also excluded,
+  # 5. If {#begin} is equal to {#end}, namely, ({#begin} <=> {#end}) == 0,
+  #    the exclude status of the both ends must agree, except for the cases
+  #    where both {#begin} and {#end} ani +nil+ (beginless and endless Range).
+  #    In other words, if the {#begin} is excluded, {#end} must be also excluded,
   #    and vice versa.
-  #    For example, (1...1) is NOT valid for that reason,
+  #    For example, +(1...1)+ is NOT valid for this reason,
   #    because any built-in Range object has the exclude status
-  #    of false (namely, inclusive) for {#begin}.
+  #    of +false+ (namely, inclusive) for {#begin}, whereas
+  #    +RangeExtd(1...1, true)+ is valid and equal (+==+) to
+  #    {RangeExtd::NONE}.
   #
-  # Note the last example may change in the future release.
+  # Note the last point may change in the future release.
   #
   # Note ([2]..[5]) is NOT valid, because Array does not include Comparable
   # for some reason, as of Ruby 2.1.1, even though it has the redefined
@@ -1053,8 +1018,10 @@ class RangeExtd < Range
   #
   # @example
   #
-  #    RangeExtd.valid?(nil..nil)     # => false
-  #    RangeExtd.valid?(nil...nil)    # => false
+  #    RangeExtd.valid?(nil..nil)     # => true
+  #    RangeExtd.valid?(nil...nil)    # => true
+  #    RangeExtd.valid?(nil<..nil)    # => true
+  #    RangeExtd.valid?(nil<...nil)   # => true
   #    RangeExtd.valid?(0..0)         # => true
   #    RangeExtd.valid?(0...0)        # => false
   #    RangeExtd.valid?(0...)         # => true
@@ -1075,14 +1042,14 @@ class RangeExtd < Range
   #  If not, the values embeded in the {Range} or {RangeExtd} object
   #  in the parameter are used.  In default, both of them are false.
   #
-  # @overload new(range, [exclude_begin=false, [exclude_end=false]])
+  # @overload valid?(range, [exclude_begin=false, [exclude_end=false]])
   #   @param range [Object] Instance of Range or its subclasses, including RangeExtd
   #   @param exclude_begin [Boolean] If specified, this has the higher priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the higher priority, or false in default.
   #
-  # @overload new(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
-  #   @param obj_begin [Object] Any object that is {Comparable} with end
-  #   @param obj_end [Object] Any object that is Comparable with begin (or nil, for Ruby 2.6 onwards)
+  # @overload valid?(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
+  #   @param obj_begin [Object] Any object that is +Comparable+ with end
+  #   @param obj_end [Object] Any object that is +Comparable+ with begin (or nil, for Ruby 2.6 onwards)
   #   @param exclude_begin [Boolean] If specified, this has the lower priority, or false in default.
   #   @param exclude_end [Boolean] If specified, this has the lower priority, or false in default.
   #
@@ -1091,20 +1058,27 @@ class RangeExtd < Range
 
     if defined?(inar[0].is_none?) && inar[0].is_none? && exc_beg && exc_end
       return true
+    elsif vbeg.nil? && vend.nil?
+      return true
     end
+
+    return false if !vbeg.respond_to?(:<=>)
     begin
       t = (vbeg <=> vend)
       begin
-        if vend.nil?
+        if vbeg.nil?  # Beginless Range introduced in Ruby 2.7
+          return vend.respond_to?(:<=)
+        elsif vend.nil?
           begin
             _ = (vbeg..nil)  # Endless Range introduced in Ruby 2.6
-            return vbeg.class.method_defined?(:<=)
+            return vbeg.respond_to?(:<=)
           rescue ArgumentError
             # Before Ruby 2.6
             return false
           end
         end
-        return false if t != -1*(vend <=> vbeg)	# false if not commutative, or possibly exception (such as -1*nil).
+        return false if !vend.respond_to?(:<=>)
+        return false if t != -1*(vend <=> vbeg)	# false if not commutative (n.b., an exception should not happen).
       rescue NoMethodError, TypeError
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
@@ -1112,7 +1086,8 @@ class RangeExtd < Range
         end
         return false	# return
       end
-    rescue # NoMethodError
+    rescue
+      warn "This should not happen. Contact the code developer (warn01)."
       false	# return
     else
       case t
@@ -1127,6 +1102,7 @@ class RangeExtd < Range
       when 1
         false
       else
+        warn "This should not happen. Contact the code developer (warn02)."
         if (Float === vend && defined?(vbeg.infinity?) && vbeg.infinity?) ||
            (Float === vbeg && defined?(vend.infinity?) && vend.infinity?)
           warn self.const_get(:ERR_MSGS)[:infinity_compare] if !$VERBOSE.nil?  # not tested so far?
@@ -1268,25 +1244,21 @@ class RangeExtd < Range
   # Core routine for {#===} and {#eql?}
   # @param [Object] r to compare.
   # @param [Symbol] method of the method name.
-  def re_equal_core(r, method)
-    if defined? r.empty?
-      is_r_empty = r.empty?
-    else
-      return false	# Not Range family.
-    end
-    if ! defined? r.exclude_end?
-      false	# Not Range family.
-    elsif is_none? && is_r_empty	# RangeExtd::NONE
-      true
-    elsif empty? && defined?(r.is_none?) && r.is_none?	# r is RangeExtd::NONE
-      true
-    elsif empty?   && is_r_empty
+  def _re_equal_core(r, method)
+    return false if !r.respond_to? :empty?  # Not Range family.
+    return false if !r.respond_to? :exclude_end?  # Not Range family.
+
+    is_r_empty = r.empty?
+    return true if is_none? && is_r_empty	# RangeExtd::NONE
+    return true if empty? && r.respond_to?(:is_none?) && r.is_none?	# r is RangeExtd::NONE
+
+    if empty?   && is_r_empty
       if method == :eql?
         # More strict
         if self.begin().class == r.begin().class
-          true	#     (1<...1).eql? (2<...2)	# => true  (Fixnum <-> Fixnum) Yes!
+          return true	#     (1<...1).eql? (2<...2)	# => true  (Fixnum <-> Fixnum) Yes!
         else
-          false	# (1.0<...1.0).eql? (2<...2)	# => false (Float  <-> Fixnum) No!
+          return false	# (1.0<...1.0).eql? (2<...2)	# => false (Float  <-> Fixnum) No!
         end
       else
         (self.begin.class.ancestors - self.begin.class.included_modules - [Object, BasicObject]).each do |ec|
@@ -1294,30 +1266,34 @@ class RangeExtd < Range
             return true	# (1.0<...1.0) == (2<...2)	# (Float<Numeric <-> Fixnum<Numeric) Yes!
           end
         end
-        false		#    (?a...?a) != (2<...2)	# (String <-> Numeric) No!
+        return false	#    (?a...?a) != (2<...2)	# (String <-> Numeric) No!
       end
+    end
 
-    elsif defined? r.exclude_begin?
+    return false if !(self.exclude_end? ^! r.exclude_end?)
+
+    # Neither self nor r is guaranteed to be RangeExtd::NONE
+    is_nil_equal = _both_eqleql_nil?(r, method)
+
+    if defined? r.exclude_begin? # r is RangeExtd
       (self.exclude_begin? ^! r.exclude_begin?) &&
         (self.exclude_end? ^! r.exclude_end?) &&
-        (self.begin.send(method, r.begin)) &&
-        (self.end.send(  method, r.end))
-        # (self.begin == r.begin) &&
-        # (self.end == r.end)
+        (self.begin.send(method, r.begin) && self.end.send(method, r.end) || is_nil_equal)
     else 
       # r is Range
       if self.exclude_begin?
         false
       else
-        @rangepart.send(method, r)	# Comparison as two Range-s.
+        is_nil_equal || @rangepart.send(method, r)	# Comparison as two Range-s.
       end
     end
-  end	# def re_equal_core(r, method)
+  end	# def _re_equal_core(r, method)
+  private :_re_equal_core
 
   # Core routine for {#min}, {#max}, {#minmax} etc.
   # @param method [Symbol] of the method name.
   # @param rest [Object]
-  def re_min_max_core(method, *rest, &bloc)
+  def _re_min_max_core(method, *rest, &bloc)
     # (1...3.5).max	# => TypeError: cannot exclude non Integer end value
     if is_none?
       raise TypeError, "no meaningful range."
@@ -1332,16 +1308,17 @@ class RangeExtd < Range
     else
       @rangepart.send(method, *rest)
     end
-  end	# def re_min_max_core(method, *rest, &bloc)
+  end	# def _re_min_max_core(method, *rest, &bloc)
+  private :_re_min_max_core
 
+  self.remove_const :NONE if defined? self::NONE  # tricky manoeuvre for documentation purposes... (see infinity.rb for the explanatory document)
   # No range.
   # In Ruby1.8, this causes  ArgumentError: bad value for range (because (nil..nil) is unaccepted).
   NONE = RangeExtd.new(nil, nil, true, true, :Constant)
-  #NONE= RangeExtd.new(nil...nil, true, true, :Constant)
 
+  self.remove_const :ALL if defined? self::ALL  # tricky manoeuvre for documentation purposes... (see infinity.rb for the explanatory document)
   # Range covers everything.
   ALL  = RangeExtd.new(Infinity::NEGATIVE, Infinity::POSITIVE, false, false, :Constant)
-  #ALL = RangeExtd.new(Infinity::NEGATIVE..Infinity::POSITIVE, false, false, :Constant)
 
 end	# class RangeExtd < Range
 
@@ -1358,7 +1335,7 @@ class Range
   alias_method :equal_prerangeextd?, :==  if ! self.method_defined?(:equal_prerangeextd?)	# No overwriting.
 
   # It is extended to handle {RangeExtd} objects.
-  # For each element, that is, {#begin} and {#end},
+  # For each element, that is, +Range#begin+ and +Range#end+,
   # this uses their method of ==().  See {#eql?}.
   #
   # As long as the comparison is limited within {Range} objects,
@@ -1383,16 +1360,63 @@ class Range
   #
   # Consult {#valid?} and {RangeExtd#==} for more detail.
   def ==(r)
-    equal_core(r, :==, :equal_prerangeextd?)
+    _equal_core(r, :==, :equal_prerangeextd?)
   end
 
 
-  alias :eql_prerangeextd? :eql?  if ! self.method_defined?(:eql_prerangeextd?)	# No overwriting.
+  alias_method :eql_prerangeextd?, :eql?  if ! self.method_defined?(:eql_prerangeextd?)	# No overwriting.
 
   # Same as {#==}, but the comparison is made with eql?() method.
   def eql?(r)
-    equal_core(r, :eql?, :eql_prerangeextd?)
+    _equal_core(r, :eql?, :eql_prerangeextd?)
   end
+
+  alias_method :size_prerangeextd?, :size  if ! self.method_defined?(:size_prerangeextd?) # No overwriting.
+
+  # {RangeExtd::Infinity} objects are considered
+  #
+  # Other than those, identical to the original {Range#size}
+  #
+  # Size is tricky. For example, +(nil..).size+ should be nil according to the specification
+  # {https://ruby-doc.org/core-3.1.2/Range.html#method-i-size}
+  # but it returns Float::INFINITY (in Ruby-3.1)
+  #
+  # See {RangeExtd#size} for more in-depth discussion.
+  #
+  # @return [Integer, NilClass]
+  # @raise [FloatDomainError] +(Infinity..Infinity).size+ (as in Ruby-3.1, though it used to be 0 in Ruby-2.1)
+  def size(*rest)
+    rbeg = self.begin
+    rend = self.end
+
+    # Both sides are (general) Infinity
+    if (rbeg.respond_to?(:infinity?) && rbeg.infinity? && 
+        rend.respond_to?(:infinity?) && rend.infinity?)
+      if    rbeg.negative? && rend.positive? 
+        # should be nil according to the specification
+        #  https://ruby-doc.org/core-3.1.2/Range.html#method-i-size
+        # but this returns Float::INFINITY (in Ruby-3.1)
+        return (nil..).size
+      elsif rbeg.positive? && rend.negative? 
+        return (Float::INFINITY..(-Float::INFINITY)).size
+      else
+        ## NOTE:
+        # (Infinity..Infinity) => 0                 (as in Ruby 2.1)
+        # (Infinity..Infinity) => FloatDomainError  (as in Ruby 3.1)
+        return (Float::INFINITY..Float::INFINITY).size
+      end
+    end
+
+    # Checking Infinities.
+    #
+    if    rbeg.respond_to?(:infinity?) && rbeg.infinity?  # but not self.end!
+      return (..rend).size
+    elsif rend.respond_to?(:infinity?) && rend.infinity?  # but not self.begin!
+      return (rbeg..).size
+    end
+
+    size_prerangeextd?(*rest)
+  end # def size(*rest)
 
 
   # Returns true if self is valid as a comparable range.
@@ -1413,7 +1437,7 @@ class Range
   #    RangeExtd::ALL.valid?        # => true
   # 
   # @note By definition, all the {RangeExtd} instances are valid,
-  #  because {RangeExtd.new} checks the validity.
+  #  because {RangeExtd.initialize} (+RangeExtd.new+) checks the validity.
   def valid?
     RangeExtd.valid?(self)
   end	# def valid?
@@ -1426,21 +1450,23 @@ class Range
   # The definition of what is empty is as follow.
   #
   # 1. the range must be valid: {#valid?} => true
-  # 2. if the range id discrete, that is, {#begin} has
-  #    [#succ] method, there must be no member within the range: 
-  #    {#to_a}.empty? => true
-  # 3. if the range is continuous, that is, {#begin} does not have
-  #    [#succ] method, {#begin} and {#end} must be equal
-  #    (({#begin} <=> {#end}) => 0) and both the boundaries must
-  #    be excluded: ({#exclude_begin?} && {#exclude_end?}) => true.
-  #    Note that ranges with equal {#begin} and {#end} with
+  # 2. if it is either a beginless or endless Range, returns false.
+  # 3. if the range id discrete, that is, +#begin+ has
+  #    +#succ+ method, there must be no member within the range: 
+  #    returns +Range#to_a.empty?+
+  # 4. if the range is continuous, that is, +#begin+ does not have
+  #    +#succ+ method, +#begin+ and +#end+ must be equal
+  #    ((+#begin+ <=> +#end+) => 0) and both the boundaries must
+  #    be excluded: ({RangeExtd#exclude_begin?} && +#exclude_end?+) == +true+.
+  #    Note that ranges with equal +#begin+ and +#end+ with
   #    inconsistent two exclude status are not valid, and the built-in
-  #    Range always has the {#begin}-exclude status of false.
+  #    Range always has the "begin-exclude" status of false.
   #
   # In these conditions, none of Range instance would return true in {#empty?}.
   #
   # @example
-  #   (nil..nil).empty?  # => nil
+  #   (nil..nil).empty?  # => false
+  #   (nil..3).empty?    # => false
   #   (1...1).empty?     # => nil
   #   (1..1).empty?      # => false
   #   RangeExtd(1...1,   true).empty? # => true
@@ -1459,8 +1485,11 @@ class Range
 
     if !valid?
       return nil
-    elsif defined?(self.is_none?) && self.is_none?
+    elsif respond_to?(:is_none?) && is_none?
+      # RangeExtd::NONE
       return true
+    elsif self.begin.nil? || self.end.nil?
+      return false
     end
 
     t = (self.begin() <=> self.end())
@@ -1476,12 +1505,12 @@ class Range
         false
       end
     when 0
-      if defined?(self.boundary) && self.boundary.nil?	# for RangeOpen
+      if defined?(self.boundary) && self.boundary.nil?
         # RangeExtd::NONE or RangeExtd::All
         if self.exclude_end?
-          true	# RangeOpen::NONE
+          true	# RangeExtd::NONE, though this should have been already recognized.
         else
-          false	# RangeOpen::ALL
+          false	# RangeExtd::ALL
         end
       else
         if defined?(self.exclude_begin?)
@@ -1500,19 +1529,51 @@ class Range
 
 
   # Returns true if it is either empty or invalid.  false otherwise.
+  #
   # See {#empty?} and {#valid?}.
+  #
+  # Even {RangeExtd} (with {RangeExtd#is_none?} being false) can be +null+.
   def null?
     (! valid?) || empty?
   end
 
+  # This method is overwritten in {RangeExtd}
+  # 
   # @return [FalseClass]
   def is_none?
     false
   end
 
-  # @return [FalseClass]
+  # true only if self is eql? to RangeExtd::ALL
+  #
+  # true if self is identical ({#eql?}) to {RangeExtd::ALL}
+  #
+  # (This is different from {#==}.)
+  #
+  # @example
+  #    (RangeExtd(RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?
+  #      # => false because it is NOT RangeExtd
   def is_all?
-    false
+    return false if !respond_to?(:exclude_begin?)  # Must be RangeExtd
+    return false if exclude_begin? || exclude_end?
+    return false if is_none?  # Essential! (b/c RangeExtd::NONE.is_all? looks like (nil..nil))
+
+    (self.begin.eql?(RangeExtd::Infinity::NEGATIVE) && self.end.eql?(RangeExtd::Infinity::POSITIVE))
+  end
+
+  # true if self is equivalent to {RangeExtd::ALL}
+  #
+  # @example
+  #    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).equiv_all?  # => true
+  #    (nil..nil).equiv_all?  # => true
+  #    (nil...nil).equiv_all? # => false
+  def equiv_all?
+    return false if respond_to?(:is_none?) && is_none?  # Essential! (b/c RangeExtd::NONE.is_all? looks like (nil..nil))
+    return false if exclude_end?
+    return false if respond_to?(:exclude_begin?) && exclude_begin?
+
+    (self.begin == RangeExtd::Infinity::NEGATIVE || self.begin.nil? || self.begin == -Float::INFINITY) &&
+    (self.end   == RangeExtd::Infinity::POSITIVE || self.end.nil?   || self.end   ==  Float::INFINITY)
   end
 
 
@@ -1575,55 +1636,55 @@ class Range
 
   # True if obj is Comparable.
   def is_comparable?(obj)
-    if defined?(obj.<=)	# Comparable?
-      true
-    else
-      false
-    end
+    defined?(obj.<=)	# Comparable?
   end
 
   # @param r [Object] to compare.
   # @param method [Symbol] of the method name.
   # @param method_pre [Symbol] of the backed-up original method name.
-  def equal_core(r, method, method_pre)
+  def _equal_core(r, method, method_pre)
     if (! defined? r.exclude_end?) || (! defined? r.is_none?) || (! defined? r.empty?)
-      false	# Not Range family.
-    # elsif empty? && defined?(r.is_none?) && r.is_none?	# r is RangeExtd::NONE
-    #   true
-    # elsif empty? && r.empty?
-    #   # None of built-in Range class object can be #empty?==true - This is for sub-class.
-    # 
-    elsif defined? r.exclude_begin?
-      # Either RangeExtd or RangeOpen object.
-      if r.exclude_begin?
-        false	# self(Range) has always the inclusive begin.
-      else
-        # It could do with a single line,
-        #    self.begin.send(method_pre, r)
-        # if this was for RangeExtd===r, but not for RangeOpen.
-        if (self.exclude_end? ^ r.exclude_end?)
-          false
-        elsif (self.begin.send(method, r.begin) && self.end.send(method, r.end))
-          true
-        else
-          false
-        end
-      end
-    else
-      self.send(method_pre, r)	# r is Range.
+      return false	# Not Range family.
     end
-  end	# def equal_core(r, method, method_pre)
 
+    # If r is RangeExtd, this delegates the judgement to r;
+    # n.b., :== and :eql? are overwritten in RangeExtd and hence this method
+    # is never called when self is a RangeExtd.
+    return r.send(method, self) if r.respond_to?(:exclude_begin?)
+
+    # r is guaranteed to be a Range.
+    # Neither self nor r is guaranteed to be RangeExtd (or RangeExtd::NONE)
+    (_both_eqleql_nil?(r, method) && (self.exclude_end? ^! r.exclude_end?)) || self.send(method_pre, r)
+  end	# def _equal_core(r, method, method_pre)
+  private :_equal_core
+
+  # true if both ends in Range are equivalent to nil and RangeExtd::Infinity
+  #
+  # Note that boundaries are not taken into account in this routine.
+  # If, for example, {#exclude_end?} contradict, regardless of the returne
+  # value of this routine, it should not be "equal".  The caller must handle it.
+  #
+  # @param other [Range, RangeExtd] Other object to compare with
+  # @option method [Symbol] One of nil, +:eql?+, and +==+. If nil, method is irrelevant.
+  def _both_eqleql_nil?(other, method=nil)
+        # Neither self nor r is guaranteed to be RangeExtd::NONE
+    is_self_begin_inf  = (self.begin.nil?  || RangeExtd::Infinity::NEGATIVE == self.begin)
+    is_other_begin_inf = (other.begin.nil? || RangeExtd::Infinity::NEGATIVE == other.begin)
+    is_self_end_inf    = (self.end.nil?    || RangeExtd::Infinity::POSITIVE == self.end)
+    is_other_end_inf   = (other.end.nil?   || RangeExtd::Infinity::POSITIVE == other.end)
+
+    method_ok = (method.nil? || (method == :==))
+    method_ok && is_self_begin_inf && is_other_begin_inf && is_self_end_inf && is_other_end_inf
+  end
+  private :_both_eqleql_nil?
 end	# class Range
 
 
 # Constant-form of {#RangeExtd}.
-# #RangeExtd(*) is equivalent to {#RangeExtd.new}.
 #
-# NOTE:
-#   "warning: Using the last argument as keyword parameters is deprecated; maybe ** should be added to the call"
-#   is raised if '**hs*' is completely omitted.  I do not know how to
-#   deal with this, other than adding **hs.
+# +RangeExtd()+ is equivalent to {#RangeExtd.new}().
+#
+# @return [RangeExtd]
 def RangeExtd(*rest, **hs, &b)
   RangeExtd.new(*rest, **hs, &b)
 end

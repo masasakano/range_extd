@@ -4,8 +4,16 @@ if ! defined?(Rational)
   require 'rational'	# For Ruby 1.8
 end
 
-# This file is required from range_open/range_open.rb
+## NOTE: Write nothing for the class description of RangeExtd, because it would have a higher priority for yard!
+
+
 class RangeExtd < Range
+  # Constant to represent no {RangeExtd}. Note that +(3...3).valid?+, for example, is false under this scheme, and it should be represented with this constant.
+  NONE = :Abstract
+
+  # Constant to represent a general {RangeExtd} that include everything (negative to positive infinities). This is basically a generalized version of range of +(-Float::INFINITY..Float::INFINITY)+ to any (comparable) Class objects.
+  ALL = :Abstract
+
   #
   # =Class RangeExtd::Infinity
   #
@@ -20,21 +28,22 @@ class RangeExtd < Range
   #
   # and two more:
   #
-  # * FLOAT_INFINITY  (OBSOLETE; workaround for Ruby 1.8 to represent Float::INFINITY)
   # * CLASSES_ACCEPTABLE (see below)
+  # * FLOAT_INFINITY  (OBSOLETE; workaround for Ruby 1.8 to represent Float::INFINITY)
   #
-  # There is no other object in this class (you can not create a new one).
+  # There  no other object in this class (you can not create a new one).
   #
   # This class includes Comparable module.
   #
   # ==Description
   #
-  # Both the two constant are an abstract value which is always smaller/larger,
+  # Both the two constant are abstract values which are always smaller/larger,
   # respectively, than any other Comparable objects (1 or -1 by i{#<=>}(obj))
   # except for infinities with the same polarity, that is, positive or negative,
   # in which case 0 is returned.
   # See the document of the method {#==} for the definition of "infinity".
-  # Also, {#succ} is defined, which just returns self.
+  #
+  # +Infinity#succ+ used to be defined up to {RangeExtd} Ver.1 but is removed in Ver.2+.
   #
   # There is a note of caution.
   # The method {#<=>} is defined in this class as mentioned above.
@@ -61,7 +70,7 @@ class RangeExtd < Range
   # and Range class does not allow such a case.
   #
   # For Numeric, this is deliberately so.
-  # Please use {Float::INFINITY} instead in principle;
+  # Please use +Float::INFINITY+ instead in principle;
   # it will be a lot faster in run-time, though it is
   # perfectly possible for you to implement the feature
   # in Numeric sub-classes, if need be.
@@ -96,8 +105,8 @@ class RangeExtd < Range
   # So, if you want to avoid such modification of the method [#<=>], perhaps
   # by some other end users, you can register the class in that array.
   #
-  # Only the methods defined in this class are
-  # {#===}, {#==}, {#<=>}, {#succ}, {#to_s}, {#inspect},
+  # Only the instance methods defined in this class are
+  # {#===}, {#==}, {#<=>}, {#to_s}, {#inspect},
   # {#infinity?}, {#positive?} and {#negative?}, and in addition, since Version 1.1,
   # two unary operators {#@+} and {#@-} to unchange/swap the parity are defined
   # ({#<} and {#>} are modified, too, to deal with Integer and Float;
@@ -149,7 +158,7 @@ class RangeExtd < Range
       FLOAT_INFINITY = 1/0.0
     end
 
-    # Class that accept to be compared with Infinity instances.
+    # Classes that accept to be compared with Infinity instances.
     CLASSES_ACCEPTABLE = [self, Float, Integer, Rational, Numeric, String]  # Fixnum, Bignum deprecated now.
     # CLASSES_ACCEPTABLE = [self, Float, Fixnum, Bignum, Rational, Numeric, String]	# , BigFloat
     CLASSES_ACCEPTABLE.push BigFloat if defined? BigFloat
@@ -164,6 +173,9 @@ class RangeExtd < Range
       positive? ? NEGATIVE : POSITIVE
     end
 
+    # returns always true.
+    #
+    # @see Infinity.infinity?
     def infinity?
       true
     end
@@ -174,10 +186,12 @@ class RangeExtd < Range
     #    Float::INFINITY <=> RangeExtd::Infinity::POSITIVE
     #
   
+    # true if self is a positive infinity
     def positive?
       @positive 
     end
   
+    # true if self is a negative infinity
     def negative?
       !@positive 
     end
@@ -189,7 +203,7 @@ class RangeExtd < Range
     #
     # @return [Integer, nil]
     def <=>(c)
-      if c.nil? || !c.class.method_defined?(:<=) # Not Comparable?
+      if c.nil? || !c.respond_to?(:<=) # Not Comparable?
         nil
       elsif c == Float::INFINITY
         nil  # Special case.
@@ -216,7 +230,7 @@ class RangeExtd < Range
       ((c.abs rescue c) == Float::INFINITY) ? raise(ArgumentError, "RangeExtd::Infinity object not comparable with '#{__method__}' with Float::INFINITY") : less_than_before_rangeextd_infinity?(c)
     end
 
-    # Always false except for itself and the corresponding {Float::INFINITY}
+    # Always false except for itself and the corresponding +Float::INFINITY+
     # and those that have methods of {#infinity?} and {#positive?}
     # with the corresponding true/false values, in which case this returns true.
     def ==(c)
@@ -238,10 +252,11 @@ class RangeExtd < Range
       self == c
     end
   
-    # @return [Infinity] self
-    def succ
-      self
-    end
+    # This used to be defined till RangeExtd Ver.1
+    ## @return [Infinity] self
+    #def succ
+    #  self
+    #end
   
     # @return [String]
     def inspect
@@ -270,7 +285,7 @@ class RangeExtd < Range
   # such as Numeric and String, in which case nil is returned.
   # If it is not Comparable, false is returned.
   # The judgement whether it is Comparable or not is based
-  # whether the class has an instance method ThatClass#<=
+  # whether the class has an instance method +ThatClass#<=+
   #
   # In processing, this method first looks up at an Array
   # {RangeExtd::Infinity::CLASSES_ACCEPTABLE},
@@ -344,9 +359,9 @@ __EOF__
     end
   end	# def self.overwrite_compare(obj)
 
-  # True if obj is a kind of Infinity like this class
+  # True if obj is a kind of Infinity like this class (excluding +Float::INFINITY+)
   #
-  # This is similar to the following, but is in a duck-typing way:
+  # This is similar to the following but is in a duck-typing way:
   #
   #   RangeExtd::Infinity === obj
   #
@@ -359,7 +374,7 @@ __EOF__
     kl.method_defined?(:infinity?) && kl.method_defined?(:positive?) && kl.method_defined?(:negative?)
   end
 
-  # True if obj is either Float::INFINITY or Infinity type.
+  # True if obj is either +Float::INFINITY+ or Infinity type.
   #
   # Note +Float#infinite?+ is defined - how to memorise this method name.
   #
@@ -370,7 +385,7 @@ __EOF__
   end
 
   ######################################
-  # Special tricky routine below.  Do not rouch!
+  # Special tricky routine below.  Do not even touch!
   ######################################
 
     private
@@ -379,6 +394,8 @@ __EOF__
       @positive = (t && true)
     end
   
+    #self.remove_const :NEGATIVE if defined? self::NEGATIVE  # tricky manoeuvre for documentation purposes... (see infinity.rb for the explanatory document)
+    #self.remove_const :POSITIVE if defined? self::POSITIVE  # However, in this case, I have failed to include their descriptions in yard after many attempts, possibly because of "private"... (so these lines are commented out.)
     NEGATIVE = new(false)
     POSITIVE = new(true)
 

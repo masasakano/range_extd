@@ -3,42 +3,49 @@
 $stdout.sync=true
 $stderr.sync=true
 # print '$LOAD_PATH=';p $LOAD_PATH
-arlibrelpath = []
+#arlibrelpath = []
 arlibbase = %w(range_extd range_extd/infinity)	# range_extd/infinity is actually loaded from range_extd.  But by writing here, the absolute path will be displayed.
 
-arlibbase.each do |elibbase|
-  arAllPaths = []
-  er=nil
-  pathnow = nil
-  (['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + ['']).each do |dir|
-    # eg., pathcand = %w(../lib/rangesmaller/ lib/rangesmaller/ rangesmaller/) + ['']
-    begin
-      s = dir+File.basename(elibbase)
-      arAllPaths.push(s)
-#print "Trying: "; puts s
-      require s
-      pathnow = s
-      break
-    rescue LoadError => er
-    end
-  end	# (['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + '').each do |dir|
+arlibrelbase = arlibbase.map{|i| "../lib/"+i}
 
-  if pathnow.nil?
-    warn "Warning: All the attempts to load the following files have failed.  Abort..."
-    warn arAllPaths.inspect
-    warn " NOTE: It may be because a require statement in that file failed, 
-rather than requiring the file itself.
- Check with  % ruby -r#{File.basename(elibbase)} -e p
- or maybe add  env RUBYLIB=$RUBYLIB:`pwd`"
-    # p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/)
-    raise er
-  else
-#print pathnow," is loaded!\n"
-    arlibrelpath.push pathnow
-  end
+arlibrelbase.each do |elibbase|
+  require_relative elibbase
+#  arAllPaths = []
+#  er=nil
+#  pathnow = nil
+#  #(['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + ['']).each do |dir|
+#  ['../lib/', 'lib/', './'].each do |dir|
+#    # eg., pathcand = %w(../lib/ lib/ ./)
+#      #s = dir+File.basename(elibbase)
+#      s = dir+elibbase
+#      arAllPaths.push(s)
+#    begin
+#      require_relative s
+#      #require s
+#    rescue LoadError => er
+#      next
+#    else
+#      pathnow = s
+#      break
+#    end
+#  end	# (['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + '').each do |dir|
+#
+#  if pathnow.nil?
+#    warn "Warning: All the attempts to load the following files have failed.  Abort..."
+#    warn arAllPaths.inspect
+#    warn " NOTE: It may be because a require statement in that file failed, 
+#rather than requiring the file itself.
+# Check with  % ruby -r#{File.basename(elibbase)} -e p
+# or maybe add  env RUBYLIB=$RUBYLIB:`pwd`"
+#    # p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/)
+#    raise er
+#  else
+##print pathnow," is loaded!\n"
+#    arlibrelpath.push pathnow
+#  end
 end	# arlibbase.each do |elibbase|
 
-print "NOTE: Library relative paths: "; p arlibrelpath
+print "NOTE: Library relative paths: "; p arlibrelbase
 print "NOTE: Library full paths:\n"
 arlibbase.each do |elibbase|
   p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/)
@@ -72,6 +79,8 @@ gem "minitest"
       Xs.new(@length + 1)
     end
     def <=>(other)
+      # Apparently, this affects :== as well!!
+      # Therefore, (Xs.new(4) == Object.new) would raise NoMethodError, whereas (Object.new == Xs.new(4)) just returns false.
       @length <=> other.length
     end
     def to_s
@@ -145,7 +154,7 @@ gem "minitest"
     RangeExtd(*rest)
   end
 
-  class TestUnitFoo < MiniTest::Unit::TestCase
+  class TestUnitFoo < MiniTest::Test
     T = true
     F = false
     InfF = Float::INFINITY
@@ -243,7 +252,12 @@ gem "minitest"
       assert_raises(TypeError){ (..3).each{}} # raise: `each': can't iterate from NilClass (TypeError)
       assert_raises(TypeError){ (..3).to_a  } # raise: `each': can't iterate from NilClass (TypeError)
       assert_raises(RangeError){ (3..).to_a } # raise: `to_a': cannot convert endless range to an array (RangeError)
-      # assert (3..Float::INFINITY).to_a  # => Infinite loop!
+      # (3..Float::INFINITY).to_a    # => Infinite loop!
+
+      assert_equal(-InfF, (-Float::INFINITY..4).first)
+      assert_equal  InfF, (4..Float::INFINITY).last
+      assert_raises(TypeError){ (-Float::INFINITY..4).first(2)} # raise: can't iterate from Float (TypeError)
+      # (4..Float::INFINITY).last(2) # Infinite loop!
     end # def test_ruby27_range_int
 
     # Ruby-2.7 (and 3.1) default behaviours.
@@ -252,7 +266,8 @@ gem "minitest"
       assert((?a..).end   != (5..Float::INFINITY).end)
       assert((..?a).begin == (..5).begin) # (because both are nil)
       assert((..?a).begin != ((-Float::INFINITY)..5).begin)
-      assert_equal InfF, (..?a).size
+      assert_nil (?a..?b).size  # Range#size is nil except for Numeric Ranges (specification).
+      assert_equal InfF, (..?a).size  # Therefore, this contradicts the specification.
       assert_nil (?a..).size
 
       assert_nil (..?a).begin
@@ -268,6 +283,63 @@ gem "minitest"
     ####################################
     # RangeExtd behaviours
     ####################################
+
+    # Tests listed in the doc
+    def test_doc_first
+      assert_equal Float::INFINITY, RaE(..nil).size
+      assert_nil   RaE(..nil).begin
+      assert_raises(RangeError){RaE(..nil).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError){RaE(..nil).last}  # raise: cannot get the last element of endless range (RangeError)
+      assert_nil RaE(..nil).end
+      assert     RaE(..nil).cover? 5
+      assert     RaE(..nil).cover? ?a
+      assert     RaE(..nil).cover? [?a]
+      assert     RaE(..nil).cover? nil
+    end
+
+    # Tests listed in the doc
+    def test_doc_integer
+      assert_equal((3...), RaE(3...nil))
+      refute_equal((3..),  RaE(3...nil))  #  (because exclude_end? differ))
+      assert_equal(RaE(3...nil), (3...))
+      refute_equal(RaE(3...nil), (3..) )  #  (because exclude_end? differ))
+      assert_equal Float::INFINITY, RaE(3..).size
+      assert_nil  RaE(..3).begin
+      assert_raises(RangeError, "first() should raise RangeError"){RaE(..3).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError, "last() should raise RangeError"){RaE(3..).last}  # raise: cannot get the last element of endless range (RangeError)
+      assert_nil  RaE(3..).end
+      assert_raises(TypeError){RaE(..3).each{}} # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(TypeError){RaE(..3).to_a}   # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(RangeError){RaE(3..).to_a}  # raise: `to_a': cannot convert endless range to an array (RangeError)
+      #  (3..Float::INFINITY).to_a  # Infinite loop!
+    end
+
+    # Tests listed in the doc
+    def test_doc_string
+      assert(    (5..).end == RaE(?a..).end)  # for direct comparison, assert_nil is required!
+      assert( RaE(5..).end ==    (?a..).end)
+      assert( RaE(5..).end == RaE(?a..).end)
+      refute_equal(   (5..Float::INFINITY).end, RaE(?a..).end)
+      refute_equal(RaE(5..Float::INFINITY).end,    (?a..).end)
+      refute_equal(RaE(5..Float::INFINITY).end, RaE(?a..).end)
+      assert(    (..5).begin == RaE(..?a).begin)  # (because both are nil)
+      assert( RaE(..5).begin ==    (..?a).begin)
+      assert( RaE(..5).begin == RaE(..?a).begin)
+      refute_equal(   ((-Float::INFINITY)..5).begin, RaE(..?a).begin)
+      refute_equal(RaE((-Float::INFINITY)..5).begin,    (..?a).begin)
+      refute_equal(RaE((-Float::INFINITY)..5).begin, RaE(..?a).begin)
+      assert_equal Float::INFINITY, RaE(..?a).size
+      assert_nil RaE(?a..).size
+
+      assert_nil RaE(..?a).begin
+      assert_raises(RangeError){RaE(..?a).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_raises(RangeError){RaE(?a..).last}  # raise: cannot get the last element of endless range (RangeError)
+      assert_nil RaE(?a..).end
+      assert_raises(TypeError){RaE(..?a).each{}} # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(TypeError){RaE(..?a).to_a}   # raise: `each': can't iterate from NilClass (TypeError)
+      assert_raises(RangeError){RaE(?a..).to_a}  # raise: `to_a': cannot convert endless range to an array (RangeError)
+      assert_raises(ArgumentError){RaE(?a..Float::INFINITY).to_a}  # raise: bad value for range (ArgumentError)  # b/c it is not String!
+    end
 
     # InfP (RangeExtd::Infinity::POSITIVE) and InfN (RangeExtd::Infinity::NEGATIVE)
     # are always comparable with any comparable objects except for
@@ -404,7 +476,7 @@ gem "minitest"
       arout = RangeExtd.class_eval{ _get_init_args(3, nil) }	# class_eval from Ruby 1.8.7 (?)
       assert_equal [3, nil, F, F], arout
       arout = RangeExtd.class_eval{ _get_init_args(3, nil, F, T) }  # true == exclude_end?
-      assert_equal [3, nil, T, F], arout
+      assert_equal [3, nil, F, T], arout
     end
 
     def test_new
@@ -486,8 +558,10 @@ gem "minitest"
       assert_equal ra00.exclude_end?, rae0.exclude_end?
       refute                          rae0.exclude_begin?
 
-      assert_equal Float::INFINITY, RangeExtd.new(?d, RangeExtd::Infinity::POSITIVE).size
-      assert_equal Float::INFINITY, RangeExtd.new(RangeExtd::Infinity::NEGATIVE, ?d).size
+      # https://ruby-doc.org/core-3.1.2/Range.html#method-i-size],
+      # > Returns the count of elements in self if both begin and end values are numeric; otherwise, returns nil
+      assert( (?d..).size == RangeExtd.new(?d, RangeExtd::Infinity::POSITIVE).size )
+      assert( (..?d).size == RangeExtd.new(RangeExtd::Infinity::NEGATIVE, ?d).size )
 
       rae0 = RangeExtd.new(?d, nil, false, true)
       assert rae0.valid?
@@ -519,20 +593,31 @@ gem "minitest"
       refute                           rae0.exclude_begin?
     end
 
-    #def test_new_endless_range04
-    #  # Ruby 2.7 and later
-    #  #
-    #  # Note this would raise a SytaxError for the versions before 2.7.
+    def test_new_endless_range04
+      # Ruby 2.7 and later
+      #
+      # Note this would raise a SytaxError for the versions before 2.7.
 
-    #  assert_equal  9, RangeExtd(..9).end
-    #  assert_equal ?d, RangeExtd(..?d).end
-    #  assert_equal ?d, RangeExtd(..?d).last
-    #  assert_equal ?d, RangeExtd(..?d, true).last
-    #  assert_nil       RangeExtd(..9).begin
-    #  assert_nil       RangeExtd(..9).first
-    #  assert_nil       RangeExtd(..?d).begin
-    #  assert_raises(RangeError){ (..?d).first} # raise: cannot get the first element of beginless range (RangeError)
-    #end
+      assert_equal  9, RangeExtd(..9).end
+      assert_equal ?d, RangeExtd(..?d).end
+      assert_equal ?d, RangeExtd(..?d).last
+      assert_equal ?d, RangeExtd(..?d, true).last
+      assert_nil       RangeExtd(..9).begin
+      assert_raises(RangeError){ RangeExtd(..9).first} # raise: cannot get the first element of beginless range (RangeError)
+      assert_nil       RangeExtd(..?d).begin
+      assert_raises(RangeError){ (..?d).first} # raise: cannot get the first element of beginless range (RangeError)
+
+      # (nil..nil).size is Infininty, even thouth it does not agree with Ruby's doc's specification.
+      assert_equal (nil..).size, RaE(InfN...InfP, true).size
+      assert_equal (nil..).size,    (InfN..InfP).size
+      assert_equal (nil..).size,    (InfN...InfP).size
+      assert_equal (-InfF..InfF).size, RaE(-InfF..InfF, true).size
+      assert_equal    0,    (InfP..InfN).size
+      assert_raises(FloatDomainError){ (InfP..InfP).size} # NaN
+      assert_raises(FloatDomainError){ (InfN..InfN).size} # NaN
+      assert( (nil..?a).size == (InfN..?a).size )
+      assert( (?a..nil).size == (?a..InfP).size )
+    end
 
     def test_new_middle_strings
       aru = ['[','(in)','(ex)',', ','(ex)','(in)',']']
@@ -627,7 +712,8 @@ gem "minitest"
 
       # Wrong range (Object input)
       assert_raises(re){ RaE(2, -1) }
-      assert_raises(re){ RaE(nil, nil) }
+      assert( RaE(nil, nil).valid?, 'RangeExtd(nil,nil) should be valid now, but..' )
+      assert( RaE(nil..nil).valid?, 'RangeExtd(nil..nil) should be valid now, but..' )
       assert_raises(re){ RaE(nil, false) }
       assert_raises(re){ RaE(?d..?a) }
       assert_raises(re){ RaE(?a, 5) }
@@ -664,7 +750,6 @@ gem "minitest"
 
       # Wrong range (Range input)
       assert_raises(re){ RangeExtd(2..-1) }
-      assert_raises(re){ RangeExtd(nil..nil) }
       assert_raises(re){ RangeExtd(?d..?a) }
 
       # Range with contradictory boundary
@@ -678,13 +763,22 @@ gem "minitest"
     end
 
     def test_new_invalid_endless_range01
-      ra00 = (nil..)  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
-      refute RangeExtd.valid?(ra00)
-      assert_raises(RangeError){ RangeExtd.new(ra00) }
-
       ra01 = (true..)
       refute RangeExtd.valid?(ra01)
-      assert_raises(RangeError){ RangeExtd.new(ra01) }
+      assert_raises(RangeError){ RangeExtd.new(ra01)} # the combination of the arguments does not constitute a valid RangeExtd instance.
+      ra02 = (..true)
+      refute RangeExtd.valid?(ra02)
+      assert_raises(RangeError){ RangeExtd.new(ra02)} # the combination of the arguments does not constitute a valid RangeExtd instance.
+    end
+
+    def test_new_valid_endless_range02
+      ras = [(nil..nil), (nil...nil), RangeExtd((..nil), true), RangeExtd((...nil), true)] 
+      # These raise the uncapturable SyntaxError for Ruby 2.5 and earlier.
+      # However, the former two are a meaningful expression in Ruby-2.7+
+      ras.each do |er|
+        assert RangeExtd.valid?(er), er.inspect+" should be valid now."
+        RangeExtd.new(er)  # Nothing should be raised
+      end
     end
 
     def test_new_exclude_begin_end
@@ -782,31 +876,49 @@ gem "minitest"
       assert_raises ArgumentError do
         RangeExtd.new(5)
       end
-      assert_raises RangeError do
-        RangeExtd.new(nil,5)
-      end
-      assert_raises RangeError do
-        RangeExtd.new(nil,5,true)
-      end
+
+      RangeExtd.new(nil,5)      # used to be RangeError (in RangeExtd Ver.1), but nothing should be raised now.
+      RangeExtd.new(nil,5,true) # used to be RangeError (in RangeExtd Ver.1), but nothing should be raised now.
     end	# def test_exclude_begin
 
 
-    # Test of Range(Extd)#is_none?
-    def test_is_none
-      assert  (RangeExtd::NONE.is_none?)
-      assert !(RangeExtd( 1, 1,true,true).is_none?)
-      assert !(RangeExtd(?a,?a,true,true).is_none?)
-      assert !((1...1).is_none?)
-    end
-
-    # Test of Range(Extd)#is_all?
+    # Test of Range(Extd)#is_all? and Range#equiv_all?
     def test_is_all
       assert  (RangeExtd::ALL.is_all?)
+      refute  (RangeExtd::NONE.is_all?)
       assert  (RangeExtd(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).is_all?)	# You can create it, if you want.
-      assert !((RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?)	# Not the standard Range, though.
-      assert !(RangeExtd(-Float::INFINITY, Float::INFINITY).is_all?)	# Different from Numeric, though.
+      assert  (RangeExtd(RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::POSITIVE).equiv_all?)
+      refute  (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).is_all?	# Not the standard Range, though.
+      assert  (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE).equiv_all?
+      refute  (-Float::INFINITY..Float::INFINITY).is_all?
+      refute  (RangeExtd(-Float::INFINITY, Float::INFINITY).is_all?)	# Different from Numeric, though.
+      assert  (RangeExtd(-Float::INFINITY, Float::INFINITY).equiv_all?)
+      assert  (-Float::INFINITY..Float::INFINITY).equiv_all?
+      assert   (nil..).equiv_all?, '(nil..) should not be *equivalent* to RangeExtd::ALL.'
+      assert  ((..nil).equiv_all?)
+      assert  ((nil..nil).equiv_all?)
+      refute  ((nil...).equiv_all?) # because of exclude_end
+      refute   (nil..).is_all?, '(nil..) should not be *identical* to RangeExtd::ALL.'
+      refute  ((..nil).is_all?)
+      refute  ((nil..nil).is_all?)
+      refute  ((nil...).is_all?)
+      assert  (nil..nil).equiv?( RangeExtd::ALL)
+      refute  (nil...nil).equiv?(RangeExtd::ALL)
+      assert_equal    (nil..), (..nil)
+      assert_operator (nil..), :eql?, (..nil)
+      assert_equal    (nil..), (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE)
+      assert_equal    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE), (nil..)
+      assert_equal RangeExtd::ALL, (nil..)
+      refute_equal RangeExtd::ALL, (nil...)
+      assert_equal((nil..),  RangeExtd::ALL)
+      refute_equal((nil...), RangeExtd::ALL)
+      assert_equal RangeExtd::ALL, RaE((nil..))
+      refute_equal RangeExtd::ALL, RaE((nil...))
+      assert_equal RaE(nil..),  RangeExtd::ALL
+      refute_equal RaE((nil..), true), RangeExtd::ALL
+      refute_operator RangeExtd::ALL, :eql?, (nil..)  # They are NOT eql? (but :==)
+      refute_operator (nil..), :eql?, RangeExtd::ALL
     end
-
 
     # Test of Range#== because it has changed first!
     def test_eql_range
@@ -909,7 +1021,6 @@ gem "minitest"
       # irb> (5.2...9).first(1)	# => TypeError: can't iterate from Float
       # irb> RangeExtd(5.2,9,:exclude_begin=>true).first(1)	# => [6]	# Not right!
       #
-
       assert_equal(@ib,   @s11.first)
       assert_equal(@ib,   @s12.first)
       assert_equal(@ib,   @s21.first)
@@ -920,9 +1031,6 @@ gem "minitest"
 
       assert_raises RangeError do
         RangeExtd(9, 3, true)
-      end
-      assert_raises ArgumentError do
-        @s22.first(1, 3)
       end
 
       ## String
@@ -949,10 +1057,17 @@ gem "minitest"
         sf2.first(1)
       end
 
-      ## Else
-      assert_raises RangeError do
-        RangeExtd.new(nil..nil, true)
-      end
+      ## Infinity
+      rain = RaE(InfN, InfP, true)
+      assert( rain.begin.eql?(InfN) )
+      assert( rain.end.eql?(  InfP) )
+      assert( rain.first.eql?(InfN) )
+      assert( rain.last.eql?( InfP) )
+      assert_raises(TypeError){ rain.first(1) }
+      # assert_raises(TypeError){ rain.last(1) }  # => infinite loop!
+
+      ## beginless/endless
+      RangeExtd.new(nil..nil, true) # used to be RangeError (in RangeExtd Ver.1), but nothing should be raised now.
 
       assert_raises ArgumentError do
         @s22.first(-7)	# "negative array size (or size too big)"
@@ -963,6 +1078,16 @@ gem "minitest"
       assert_raises TypeError do
         @s22.first(nil)
       end
+
+      # (..nil).first : cannot get the first element of beginless range (RangeError)
+      # (2..2).first(-1) : negative array size (or size too big) (ArgumentError)
+      # (2..2).first(1,2) : wrong number of arguments (given 2, expected 1) (ArgumentError)
+      # (2..2).first(?a) : no implicit conversion of String into Integer (TypeError)
+      # (true..true).first(1) : can't iterate from TrueClass (TypeError)
+      assert_raises(RangeError){ RangeExtd::NONE.first }
+      assert_raises(RangeError){ RangeExtd::NONE.first(2) }
+      assert_raises(ArgumentError){ RaE(2,3,true).first(1,2) }
+      assert_raises(ArgumentError){ RaE(2,3,true).first(-1) }
     end	# def test_first
 
 
@@ -1089,6 +1214,7 @@ gem "minitest"
       assert_equal(@r11.hash, @s11.hash)
       assert_equal(@r12.hash, @s12.hash)
       assert (@r12.hash != @s22.hash)
+      refute_equal((...nil).hash, RangeExtd::NONE.hash)
     end	# def test_hash
 
     def test_min
@@ -1274,8 +1400,8 @@ gem "minitest"
       assert_equal(-1, (RangeExtd::Infinity::NEGATIVE <=> RangeExtd::Infinity::POSITIVE))
       assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::NEGATIVE
       assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::NEGATIVE
-      assert_equal RangeExtd::Infinity::POSITIVE, RangeExtd::Infinity::POSITIVE.succ
-      assert_equal RangeExtd::Infinity::NEGATIVE, RangeExtd::Infinity::NEGATIVE.succ
+      refute RangeExtd::Infinity::POSITIVE.respond_to? :succ
+      refute RangeExtd::Infinity::NEGATIVE.respond_to? :succ
       refute_equal(-Float::INFINITY, RangeExtd::Infinity::NEGATIVE)
       refute_equal  Float::INFINITY, RangeExtd::Infinity::POSITIVE
       assert_raises(ArgumentError) { Float::INFINITY < RangeExtd::Infinity::POSITIVE }
@@ -1334,9 +1460,9 @@ gem "minitest"
     end
 
     def test_RangeExtdClass_valid
-      assert !RangeExtd.valid?(nil, nil, 9,9)	# All 3 were true up to Version 0.1.0
-      assert !RangeExtd.valid?(nil...nil,9,9)
-      assert !RangeExtd.valid?(nil..nil, 9,9)
+      assert RangeExtd.valid?(nil, nil, 9,9)	# All 3 were true up to Version 0.1.0 and at 2.0+
+      assert RangeExtd.valid?(nil...nil,9,9)
+      assert RangeExtd.valid?(nil..nil, 9,9)
     end	# def test_RangeExtdClass_valid
 
     def test_Range_valid
@@ -1347,7 +1473,7 @@ gem "minitest"
       assert  (?a..?a).valid?	# single element
       assert !(?a...?a).valid?	# less than empty
       assert  (?a...?b).valid?	# single element
-      assert !(nil..nil).valid?
+      assert  (nil..nil).valid?
       assert !(true...true).valid?
       assert  RangeExtd(0..0).valid?
       #assert !RangeExtd(0...0).valid?
@@ -1368,8 +1494,8 @@ gem "minitest"
       assert  (0..).valid?  # This raises the uncapturable SyntaxError for Ruby 2.5 and before anyway.
       assert  (0...).valid?
       refute  (true..).valid?
-      refute  (nil...).valid?
-      refute  (nil..nil).valid?
+      assert  (nil...).valid?   # false in Ver.1 (Ruby 2.6)
+      assert  (nil..nil).valid? # false in Ver.1 (Ruby 2.6)
       assert   (Float::INFINITY..Float::INFINITY).valid?
       assert  (-Float::INFINITY..Float::INFINITY).valid?
       assert  (-Float::INFINITY...Float::INFINITY).valid?
@@ -1384,7 +1510,8 @@ gem "minitest"
       assert_nil (?a...?a).empty?	# less than empty
       assert    !(?a...?b).empty?	# single element
       assert     RangeExtd(?a...?b, :exclude_begin => true).empty?	# empty
-      assert_nil (nil..nil).empty?
+      refute     (nil..nil).empty?
+      refute     (nil..3).empty?
       assert_nil (true...true).empty?
       assert    !RangeExtd(0..0).empty?	# single element
       assert_nil (0...0).empty?
@@ -1413,7 +1540,7 @@ gem "minitest"
       assert     (?a...?a).null?	# less than empty
       assert    !(?a...?b).null?	# single element
       assert     RangeExtd(?a...?b, :exclude_begin => true).null?	# empty
-      assert     (nil..nil).null?
+      refute     (nil..nil).null?
       assert     (true...true).null?
       assert    !RangeExtd(0..0).null?	# single element
       assert     (0...0).null?
@@ -1512,8 +1639,19 @@ gem "minitest"
     end	# def test_RangeExtd_equiv
 
 
+    # Test of Range(Extd)#is_none? and RangeExtd::NONE
     def test_RangeExtd_none
+      # From examples in RangeExtd#is_none?
+      assert  RaE(0,0,true,true).valid?
+      assert (RaE(0,0,true,true) == RangeExtd::NONE)
+      assert  RaE(0,0,true,true).empty?
+      refute  RaE(0,0,true,true).is_none?
       assert  RangeExtd::NONE.is_none?
+
+      refute  (RangeExtd( 1, 1,true,true).is_none?)
+      refute  (RangeExtd(?a,?a,true,true).is_none?)
+      refute  ((1...1).is_none?)
+
       assert  RangeExtd::NONE.valid?
       assert  RangeExtd::NONE.null?
       assert  RangeExtd::NONE.empty?
@@ -1585,9 +1723,8 @@ gem "minitest"
       assert_raises TypeError do
         r.first(?a)
       end
-      assert_raises TypeError do
-        r.last(3)
-      end
+
+      # r.last(3)  # goes into an infinite loop!
     end
 
 
@@ -1629,10 +1766,8 @@ gem "minitest"
       assert_equal RangeExtd::Infinity::NEGATIVE, rs.begin	# It is Infinity,
       refute_equal(-Float::INFINITY, rs.begin)
       assert     ! rs.begin.positive?
-      assert_equal  Float::INFINITY, rs.size
-      assert_raises TypeError do
-        rs.last(3)
-      end
+      assert( (..?z).size == rs.size )
+      #assert_raises(TypeError){ rs.last(3) }  # => infiite loop
     end
 
     def test_infinity_unary_operators
@@ -1764,8 +1899,8 @@ gem "minitest"
       # RangeExtd#step	# => the same as each
 
       # RangeExtd.valid?
-      assert !RangeExtd.valid?(nil..nil)     # => false
-      assert !RangeExtd.valid?(nil...nil)    # => false
+      assert  RangeExtd.valid?(nil..nil)
+      assert  RangeExtd.valid?(nil...nil)
       assert  RangeExtd.valid?(0..0)         # => true
       assert !RangeExtd.valid?(0...0)        # => false
       assert !RangeExtd.valid?(0..0,  true)  # => false
@@ -1810,11 +1945,11 @@ gem "minitest"
 
       # Range#==
       assert !(1...1).valid?
-      assert !(nil...nil).valid?
+      assert  (nil...nil).valid?
       assert !((1...1) == RangeExtd(1, 1, true, true))	# => false.
 
       # Range#valid?
-      assert !(nil..nil).valid? # => false
+      assert  (nil..nil).valid?
       assert  (0..0).valid?     # => true
       assert !(0...0).valid?    # => false
       assert !(2..-1).valid?    # => false
@@ -1824,7 +1959,7 @@ gem "minitest"
       assert  RangeExtd::ALL.valid?  # => true
 
       # Range#empty?
-      assert_nil       (nil..nil).empty?  # => nil
+      refute           (nil..nil).empty?
       assert_nil       (1...1).empty?     # => nil
       assert !(1..1).empty?      # => false
       assert  RangeExtd(1...1,   true).empty? # => true
