@@ -11,7 +11,8 @@
 #   require "range_extd/load_all"
 #
 class Object
-  alias_method :compare_obj_before_infinity, :<=>  if ! self.method_defined?(:compare_obj_before_infinity)	# No overwriting.
+  # Backup of the original method {Object#<=>}
+  alias_method :compare_obj_before_infinity, :<=>  if ! self.method_defined?(:compare_obj_before_infinity)
 
   # Overwrite {Object#<=>}().  Then, all its sub-classes can be
   # aware of RangeExtd::Infinity objects (the two constants).
@@ -43,7 +44,7 @@ class Object
   #    end
   #
   def <=>(c)
-    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c  # Second "return" is essential as c.send() may return nil.
     compare_obj_before_infinity(c)
   end	# def <=>(c)
 end	# class Object

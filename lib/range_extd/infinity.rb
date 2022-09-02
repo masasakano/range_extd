@@ -31,9 +31,9 @@ class RangeExtd < Range
   # * CLASSES_ACCEPTABLE (see below)
   # * FLOAT_INFINITY  (OBSOLETE; workaround for Ruby 1.8 to represent Float::INFINITY)
   #
-  # There  no other object in this class (you can not create a new one).
+  # There are no other objects in this class (you cannot create a new one).
   #
-  # This class includes Comparable module.
+  # This class includes +Comparable+ module.
   #
   # ==Description
   #
@@ -43,7 +43,7 @@ class RangeExtd < Range
   # in which case 0 is returned.
   # See the document of the method {#==} for the definition of "infinity".
   #
-  # +Infinity#succ+ used to be defined up to {RangeExtd} Ver.1 but is removed in Ver.2+.
+  # +Infinity#succ+ used to be defined up to {RangeExtd} Ver.1 but is removed in Ver.2.
   #
   # There is a note of caution.
   # The method {#<=>} is defined in this class as mentioned above.
@@ -52,66 +52,62 @@ class RangeExtd < Range
   #
   # There are only three built-in classes that are Comparable: String, Time and Numeric
   # (except for Complex).
-  # Note Date and DateTime objects are so, too, however practically
-  # they need "require", hence are (and must be) treated, the same as any other classes.
-  # For String and Time class objects, the [#<=>] operator work as expected
-  # in the commutative way.
+  # Note Date and DateTime objects are so, too, however they need "require",
+  # hence are (and must be) treated, in the same was as with any other classes.
+  #
+  # But whether String, Time, or Numeric class objects, the [#<=>] operator
+  # does work in the commutative way with the instances of this class.
   #    ?z <=> RangeExtd::Infinity::POSITIVE    # => nil
   #    RangeExtd::Infinity::POSITIVE <=> ?z    # => 1.
-  #
-  # For Numeric, it does not.
   #    50 <=> RangeExtd::Infinity::POSITIVE    # => nil
   #    RangeExtd::Infinity::POSITIVE <=> 50    # => 1.
   #
-  # For that reason, for example,
-  #   ( 50 .. RangeExtd::Infinity::POSITIVE)
+  # For this reason, for example,
+  #   (50 .. RangeExtd::Infinity::POSITIVE)
   # raises an exception, because the Numeric instance 50 does not
-  # know how to compare itself with a RangeExtd::Infinity instance,
-  # and Range class does not allow such a case.
+  # know how to compare itself with a {RangeExtd::Infinity} instance,
+  # and {Range} class does not allow such a case.
   #
-  # For Numeric, this is deliberately so.
-  # Please use +Float::INFINITY+ instead in principle;
-  # it will be a lot faster in run-time, though it is
-  # perfectly possible for you to implement the feature
-  # in Numeric sub-classes, if need be.
+  # To mitigate the inconvenience,
+  # this package provides helper libraries +range_extd/object+
+  # and +range_extd/numeric+ (or all-inclusive wrapper +range_extd/load_all+).
+  # If your code requires them, [#<=>] operators in String and Numeric
+  # will work commutatively with {RangeExtd::Infinity}.
   #
-  # Any other Comparable classes are defined by users by definition,
-  # whether you or authors of libraries.
-  # The comparison with {RangeExtd::Infinity} instances are
-  # implemented in {Object#<=>} in this library.  Hence, as long as
-  # the method [#<=>] in the classes is written sensibly, that is, if it
-  # respects the method of the super-class when it does not know
-  # how to deal with an unknown object, there is no need for
-  # modification.  Any object in your class (say, YourComparable) 
-  # is immediately comparable with the {RangeExtd::Infinity} instances,
+  # Once the library +range_extd/object+ has been required (your code must 
+  # explicitly include the statement +require "range_extd/object"+,
+  # unless your code requires +range_extd/load_all+),
+  # which redefines {Object#<=>} so that the operator in any descendant
+  # class works in a commutative way with {RangeExtd::Infinity} instances.
   #    YourComparable.new <=> RangeExtd::Infinity::POSITIVE    # => -1
   #    RangeExtd::Infinity::POSITIVE <=> YourComparable.new    # => 1
-  # except for the infinity inscances in YourComparable (see {#==}).
-  #
-  # See the document in {Object#<=>} in this code/package for detail.
+  # The condition for it is, though, the method [#<=>] in the descendant class is
+  # written in a sensible manner, that is, it respects the method of
+  # the super-class when it does not know
+  # how to deal with a given object.
   #
   # However, some existing Comparable classes, perhaps written by some
   # one else may not be so polite, and has disabled comparison
   # with any object but those intended.  Unlucky you!
-  # For example, the classes like Date and DateTime are one of them.
+  # Indeed, the classes like Date and DateTime are one of them.
   #
   # For that sort of circumstances,
   # the class method {RangeExtd::Infinity.overwrite_compare} provides
-  # a convenient way to overcome this problem to make
+  # a convenient way to overcome the problem to (dynamically) make
   # the operator [#<=>] commutative for a given Comparable class.
   #
   # Note {RangeExtd::Infinity.overwrite_compare} does nothing for the classes
   # registered in the Class constant Array {RangeExtd::Infinity::CLASSES_ACCEPTABLE}.
   # So, if you want to avoid such modification of the method [#<=>], perhaps
-  # by some other end users, you can register the class in that array.
+  # by some other end users, you can register the class in the array.
   #
   # Only the instance methods defined in this class are
   # {#===}, {#==}, {#<=>}, {#to_s}, {#inspect},
-  # {#infinity?}, {#positive?} and {#negative?}, and in addition, since Version 1.1,
-  # two unary operators {#@+} and {#@-} to unchange/swap the parity are defined
-  # ({#<} and {#>} are modified, too, to deal with Integer and Float;
+  # {#infinity?}, {#positive?} and {#negative?}. In addition, since Version 1.1,
+  # two unary operators {#@+} and {#@-} to unchange/swap the parity are defined,
+  # (the reason why {#<} and {#>} are modified is to deal with Integer and Float;
   # I do not know whether the default behaviour of these classes have changed
-  # in the recent versions of Ruby, hence resulting in the neccesity of this change).
+  # in the recent versions of Ruby, though).
   #
   # === Comparison operators
   #
@@ -130,14 +126,14 @@ class RangeExtd < Range
   # concept of Float::INFINITY.  Therefore they are really not *equal*.
   # On the other hand, {RangeExtd::Infinity::POSITIVE} is *greater* than
   # any normal comparable objects (except those that are *infinite*).
-  # Therefore, all the following are true ({Object#<=>} and some methods
+  # Therefore, all of the following are true ({Object#<=>} and some methods
   # in some classes are modified)
   #
-  #   (5 < RangeExtd::Infinity::POSITIVE)
-  #   (5 > RangeExtd::Infinity::NEGATIVE)
+  #   (RangeExtd::Infinity::POSITIVE > 5)
+  #   (RangeExtd::Infinity::NEGATIVE < 5)
   #
-  #   ("a" < RangeExtd::Infinity::POSITIVE)
-  #   ("a" > RangeExtd::Infinity::NEGATIVE)
+  #   (RangeExtd::Infinity::POSITIVE > "a")
+  #   (RangeExtd::Infinity::NEGATIVE < "a")
   #
   # whereas
   #
@@ -196,7 +192,8 @@ class RangeExtd < Range
       !@positive 
     end
 
-    alias_method :cmp_before_rangeextd_infinity?, :==  if ! self.method_defined?(:cmp_before_rangeextd_infinity?)	# No overwriting.
+    # Backup of the original method {RangeExtd::Infinity#==}
+    alias_method :cmp_before_rangeextd_infinity?, :==  if ! self.method_defined?(:cmp_before_rangeextd_infinity?)
 
     # Always -1 or 1 except for itself and the corresponding infinities (== 0).  See {#==}.
     # Or, nil (as defined by Object), if the argument is not Comparable, such as, nil and IO.
@@ -212,7 +209,8 @@ class RangeExtd < Range
       end
     end
 
-    alias_method :greater_than_before_rangeextd_infinity?, :>  if ! self.method_defined?(:greater_than_before_rangeextd_infinity?)	# No overwriting.
+    # Backup of the original method {RangeExtd::Infinity#>}
+    alias_method :greater_than_before_rangeextd_infinity?, :>  if ! self.method_defined?(:greater_than_before_rangeextd_infinity?)
     # Special case for Float::INFINITY
     #
     #   (Float::INFINITY > RangeExtd::Infinity::POSITIVE)
@@ -221,6 +219,7 @@ class RangeExtd < Range
       ((c.abs rescue c) == Float::INFINITY) ? raise(ArgumentError, "RangeExtd::Infinity object not comparable with '#{__method__}' with Float::INFINITY") : greater_than_before_rangeextd_infinity?(c)
     end
 
+    # Backup of the original method {RangeExtd::Infinity#<}
     alias_method :less_than_before_rangeextd_infinity?, :<  if ! self.method_defined?(:less_than_before_rangeextd_infinity?)	# No overwriting.
     # Special case for Float::INFINITY
     #
@@ -278,13 +277,19 @@ class RangeExtd < Range
   # always gives back -1 (except for same infinities).  However the other way around,
   #   SomeClass.new.<=>(RangeExtd::Infinity::NEGATIVE)
   # usually returns nil, which is not handy.
+  #
   # Therefore, this function (Class method) provides a convenient
   # way to overcome it, that is, if the given class
-  # (or the class of the given object) is Comparable,
+  # (or the class of the given object) is Comparable
+  # and returns +nil+ when compared with {RangeExtd::Infinity}
+  # (note that such a check is only possible when an instance is given
+  # given to this method as the argument),
   # its [#<=>] method is modified (and true is returned),
-  # unless it has been already done so, or some classes as listed below,
+  # unless it has been already done so, or it is one of the classes listed below,
   # such as Numeric and String, in which case nil is returned.
-  # If it is not Comparable, false is returned.
+  # If it is not Comparable, false is returned. If +<=>+ returns
+  # something other than nil, nil is returned (for it likely
+  # means the class already recognises {RangeExtd::Infinity}).
   # The judgement whether it is Comparable or not is based
   # whether the class has an instance method +ThatClass#<=+
   #
@@ -295,7 +300,7 @@ class RangeExtd < Range
   # are met, it overwrites its <=> method and register
   # the class in the array.
   #
-  # @param obj [Object] Either Class or its object.
+  # @param obj [Object] Either Class or its instance. An instance is recommended, because an additional check is possible.
   # @return [Boolean, nil] (see the description).
   def self.overwrite_compare(obj)
     if defined? obj.instance_methods
@@ -307,6 +312,15 @@ class RangeExtd < Range
         _ = 1.0 + obj	# Use  "rescue ArgumentError"  if using "1.0<obj"
         return nil	# No change for Numeric
       rescue TypeError
+      end
+
+      begin
+        cmpval = (obj <=> self::POSITIVE)
+        return nil if !cmpval.nil?  # the instance recognises RangeExtd::Infinity
+      rescue NoMethodError
+        return false    # <=> is not defined (explicitly disabled, apparently).
+      rescue
+        # If the comparison with Infinity raises an Exception, the method will be modified here.
       end
     end		# if defined? obj.instance_methods
 
@@ -331,33 +345,15 @@ class RangeExtd < Range
       code = <<__EOF__
   alias_method :compare_before_infinity, :<=> if ! self.method_defined?(:compare_before_infinity)
   def <=>(c)
-    if defined?(self.<=) && RangeExtd::Infinity === c
-      if defined?(self.infinity?) && defined?(self.positive?)
-        if (self.positive? ^! c.positive?)
-          0
-        elsif self.positive?
-          1
-        else
-          -1
-        end
-      else
-        if c.positive?
-          -1
-        else
-          1
-        end
-      end
-    else
-      compare_before_infinity(c)
-    end
+    return (-(c.send(__method__, self) || return)) if RangeExtd::Infinity.infinity? c
+    compare_before_infinity(c)
   end
 __EOF__
-#<<__EOF__	# for Emacs hilit.
 
       klass.class_eval(code)
 
       true
-    end
+    end # if !a.include?( :<= )	# NOT Comparable
   end	# def self.overwrite_compare(obj)
 
   # True if obj is a kind of Infinity like this class (excluding +Float::INFINITY+)
