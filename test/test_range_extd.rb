@@ -2,53 +2,21 @@
 
 $stdout.sync=true
 $stderr.sync=true
+
 # print '$LOAD_PATH=';p $LOAD_PATH
-#arlibrelpath = []
 arlibbase = %w(range_extd range_extd/infinity)	# range_extd/infinity is actually loaded from range_extd.  But by writing here, the absolute path will be displayed.
 
 arlibrelbase = arlibbase.map{|i| "../lib/"+i}
 
 arlibrelbase.each do |elibbase|
   require_relative elibbase
-#  arAllPaths = []
-#  er=nil
-#  pathnow = nil
-#  #(['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + ['']).each do |dir|
-#  ['../lib/', 'lib/', './'].each do |dir|
-#    # eg., pathcand = %w(../lib/ lib/ ./)
-#      #s = dir+File.basename(elibbase)
-#      s = dir+elibbase
-#      arAllPaths.push(s)
-#    begin
-#      require_relative s
-#      #require s
-#    rescue LoadError => er
-#      next
-#    else
-#      pathnow = s
-#      break
-#    end
-#  end	# (['../lib/', 'lib/', ''].map{|i| i+elibbase+'/'} + '').each do |dir|
-#
-#  if pathnow.nil?
-#    warn "Warning: All the attempts to load the following files have failed.  Abort..."
-#    warn arAllPaths.inspect
-#    warn " NOTE: It may be because a require statement in that file failed, 
-#rather than requiring the file itself.
-# Check with  % ruby -r#{File.basename(elibbase)} -e p
-# or maybe add  env RUBYLIB=$RUBYLIB:`pwd`"
-#    # p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/)
-#    raise er
-#  else
-##print pathnow," is loaded!\n"
-#    arlibrelpath.push pathnow
-#  end
 end	# arlibbase.each do |elibbase|
 
 print "NOTE: Library relative paths: "; p arlibrelbase
-print "NOTE: Library full paths:\n"
-arlibbase.each do |elibbase|
-  p $LOADED_FEATURES.grep(/#{Regexp.quote(File.basename(elibbase)+'.rb')}$/)
+print "NOTE: Library full paths:\n"; p arlibbase.map{|i| i.sub(%r@^(../)+@, "")}
+arlibbase.map{|i| i.sub(%r@^(../)+@, "")}.each do |elibbase|
+  ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
+  print elibbase+": " if ar.empty?; p ar
 end
 
 
@@ -341,19 +309,22 @@ gem "minitest"
       assert_raises(ArgumentError){RaE(?a..Float::INFINITY).to_a}  # raise: bad value for range (ArgumentError)  # b/c it is not String!
     end
 
+    # IF and only if "range_extd/numeric" is required,
     # InfP (RangeExtd::Infinity::POSITIVE) and InfN (RangeExtd::Infinity::NEGATIVE)
     # are always comparable with any comparable objects except for
     # Float::INFINITY, in which case ArgumentError is raised.
+    #
+    # In this case, the file is not required.
     def test_infinity_compare
       assert_operator            7.7, '<', InfF
-      assert_operator            7.7, '<', InfP
-      assert_operator            7.7, '>', InfN
+      assert_raises(ArgumentError){ 7.7 < InfP }
+      assert_raises(ArgumentError){ 7.7 > InfN }
       assert_operator           InfP, '>', 7.7
       assert_operator           InfN, '<', 7.7
       assert_operator              8, '<', InfF
-      assert_operator              8, '<', InfP
+      assert_raises(ArgumentError){ 8 < InfP }
       assert_operator Rational(2, 3), '<', InfF
-      assert_operator Rational(2, 3), '<', InfP
+      assert_raises(ArgumentError){ Rational(2, 3) < InfP }
       assert_operator           InfP, '>', Rational(2, 3)
       assert_operator           InfN, '<', Rational(2, 3)
       assert_operator 'h', '<',  InfP
@@ -369,12 +340,12 @@ gem "minitest"
       assert_raises(ArgumentError) { InfP < Object.new }
       assert_nil     (InfF <=> InfP)
       assert_nil     (InfP <=> InfF)
-      assert_equal(-1,  7.7 <=> InfP)
-      assert_equal( 1,  7.7 <=> InfN)
+      assert_nil( 7.7 <=> InfP)
+      assert_nil( 7.7 <=> InfN)
       assert_equal( 1, InfP <=> 7.7)
       assert_equal(-1, InfN <=> 7.7)
-      assert_equal(-1,    5 <=> InfP)
-      assert_equal( 1,    5 <=> InfN)
+      assert_nil( 5 <=> InfP)
+      assert_nil( 5 <=> InfN)
       assert_equal( 1, InfP <=> 5)
       assert_equal(-1, InfN <=> 5)
       assert_equal(-1,  'h' <=> InfP)
@@ -427,11 +398,10 @@ gem "minitest"
     def test_rangeextd_new_infinity_c2
       c2 = CLC2.new
       assert_nil  (c2 <=> 1)	# Object#<=>
-      assert_equal(-1, (c2 <=> RangeExtd::Infinity::POSITIVE))
-      assert_equal  1, (c2 <=> RangeExtd::Infinity::NEGATIVE)
-      r=(c2..RangeExtd::Infinity::POSITIVE)
-      assert_equal RangeExtd::Infinity::POSITIVE, r.end
-      r=(RangeExtd::Infinity::NEGATIVE..c2)
+      assert_nil(c2 <=> RangeExtd::Infinity::POSITIVE)
+      assert_nil(c2 <=> RangeExtd::Infinity::NEGATIVE)
+      assert_raises(ArgumentError, '"bad value for range" should be raised when object.rb is not required'){ (c2..RangeExtd::Infinity::POSITIVE) }
+      r=(RangeExtd::Infinity::NEGATIVE..c2)  # This is OK at least in Ruby-3.1 because (RangeExtd::Infinity::NEGATIVE <=> c2) is valid.
       assert_equal RangeExtd::Infinity::NEGATIVE, r.begin
 
       assert_raises(ArgumentError){ (true..RangeExtd::Infinity::POSITIVE) }	# => bad value for range
@@ -458,12 +428,11 @@ gem "minitest"
 
     def test_rangeextd_new_infinity_c3
       c3 = CLC3.new
-      assert_equal(-1, (c3 <=> RangeExtd::Infinity::POSITIVE))
-      assert_equal  1, (c3 <=> RangeExtd::Infinity::NEGATIVE)
+      assert_nil(c3 <=> RangeExtd::Infinity::POSITIVE)
+      assert_nil(c3 <=> RangeExtd::Infinity::NEGATIVE)
 
-      r=(c3..RangeExtd::Infinity::POSITIVE)
-      assert_equal RangeExtd::Infinity::POSITIVE, r.end
-      r=(RangeExtd::Infinity::NEGATIVE..c3)
+      assert_raises(ArgumentError, '"bad value for range" should be raised when object.rb is not required'){(c3..RangeExtd::Infinity::POSITIVE) }
+      r=(RangeExtd::Infinity::NEGATIVE..c3)  # This is OK at least in Ruby-3.1 because (RangeExtd::Infinity::NEGATIVE <=> c3) is valid.
       assert_equal RangeExtd::Infinity::NEGATIVE, r.begin
     end	# def test_rangeextd_new_infinity_c3
 
@@ -1980,7 +1949,7 @@ gem "minitest"
       # class Infinity
       assert_equal( -1, (?z <=> RangeExtd::Infinity::POSITIVE))
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> ?z)
-      assert_equal( -1, (50 <=> RangeExtd::Infinity::POSITIVE))
+      assert_nil(       (50 <=> RangeExtd::Infinity::POSITIVE), 'When "range_extd/numeric" is NOT required, 50 is not comparable with POSITIVE-infinity.')
       assert_equal   1, (RangeExtd::Infinity::POSITIVE <=> 50)
     end	# def test_in_document
 

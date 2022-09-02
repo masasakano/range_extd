@@ -360,29 +360,57 @@ Two files
 
 should be installed in one of your `$LOAD_PATH` 
 
-Alternatively get it from {http://rubygems.org/gems/range_extd} Then all you
-need to do is
+Alternatively get it from {http://rubygems.org/gems/range_extd}
 
-    require 'range_extd/range_extd'
+Or, if you manually install it, place all the Ruby files under `lib/`
+directory under one of your `RUBYLIB` directory paths, preserving the
+directory structure. Note that `range_extd.rb` must be directly under the
+library directory.
 
-or, possibly as follows, if you manually install it
+Then all you need to do is
 
-    require 'range_extd'
+    require "range_extd/load_all"
 
-in your Ruby script (or irb).  The other file
+Or, if you only want minimum functions of this library, you can instead
 
-    range_extd/infinity.rb
+    require "range_extd/range_extd"
 
-is called (required) from it automatically.
+Basically, "`range_extd/load_all.rb`" is a wrapper Ruby file, which requires
+the following files:
+
+    require "range_extd/range_extd"
+    require "range_extd/nil_class"
+    require "range_extd/numeric"
+    require "range_extd/object"
+    require "range_extd/infinity"
+    require "range_extd/nowhere"
+    require "range_extd/range"
+
+Among these, the first four files are independent, whereas the last three
+files are inseparatable from the first one and are automatically require-d
+from the first one.
+
+The second to fourth files are a set of utility libraries; if your code
+requires them, some methods are added or some existing methods are slightly
+altered in the existing Ruby built-in classes: `Object`, `NilClass`, and
+`Numeric` (including `Float` and `Integer`). How they are modified are
+basically backward-compatible and simply a few new features are added.  Their
+use is highly recommended; otherwise, the use of this library would be very
+limited.  For example, the compare operator +<=>+ would not be commutative
+without them, which might result in some nasty surprises.  For detail, refer
+to the individual references.
 
 Have fun!
 
 ## Simple Examples
 
+In the following, I assume all the files are required.
+
 ### How to create a RangeExtd instance
 
 Here are some simple examples.
 
+    require "range_extd/load_all"
     r = RangeExtd(?a...?d, true)  # => a<...d
     r.exclude_begin?              # => true 
     r.to_a                        # => ["b", "c"]
@@ -444,11 +472,12 @@ All the methods that are in the built-in Range can be used.
 
 ## Description
 
-Once the file `range_extd/range_extd.rb` is required, the two classes are
+Once the file `range_extd/range_extd.rb` is required, the three classes are
 defined:
 
 *   RangeExtd
 *   RangeExtd::Infinity
+*   RangeExtd::Nowhere
 
 
 Also, several methods are added or altered in Range class. All the changes
@@ -463,11 +492,11 @@ Class {RangeExtd::Infinity} has basically only two constant instances.
 
 
 They are the objects that generalise the concept of `Float::INFINITY`  to any
-Comparable objects.  The methods `<=>` and `succ`  are defined.
+Comparable objects.  The methods `<=>` are defined.
 
 You can use them in the same way as other objects, such as,
 
-    ("k"..RangeExtd::Infinity::POSITIVE)
+    (RangeExtd::Infinity::NEGATIVE.."k")
 
 However, since they do not have any other methods, the use of them out of
 Range or its sub-classes is probably meaningless.
