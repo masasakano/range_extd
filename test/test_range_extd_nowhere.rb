@@ -53,17 +53,29 @@ class TestUnitNowhere < MiniTest::Test
     assert( nowhere.nil? )
   end	# def test_nowhere
 
-  # Because 'nil_class.rb' is not required, NilClass remains in its default state.
+  # 'nil_class.rb' is always required, and so these should hold.
   def test_nil_class
     nowhere = RangeExtd::Nowhere::NOWHERE
     refute(nil.eql?(nowhere))
+    assert( nil == nowhere )
+    assert_equal 0, ( nil <=> nowhere )
 
-    refute(     nil == nowhere )
-    assert_nil( nil <=> nowhere )
-
-    refute nil.respond_to?(:nowhere?)
-    refute nil.respond_to?(:class_raw)
+    refute nil.nowhere?
+    assert_equal NilClass, nil.class_raw
     assert_equal NilClass, nil.class
   end  # def test_nil_class
+
+  ## when 'nil_class.rb' is not required, these are the cases.
+  #def test_nil_class
+  #  nowhere = RangeExtd::Nowhere::NOWHERE
+  #  refute(nil.eql?(nowhere))
+  #
+  #  refute(     nil == nowhere )
+  #  assert_nil( nil <=> nowhere )
+  #
+  #  refute nil.respond_to?(:nowhere?)
+  #  refute nil.respond_to?(:class_raw)
+  #  assert_equal NilClass, nil.class
+  #end  # def test_nil_class
 end # class TestUnitNowhere < MiniTest::Test
 

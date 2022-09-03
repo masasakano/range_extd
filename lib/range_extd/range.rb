@@ -2,7 +2,7 @@
 
 #== Summary
 #
-# Modifies {#==}, {#eql?} and add methods of
+# Modifies {#==} and add methods of
 # {#valid?}, {#empty?}, {#null?}, {#is_none?} and {#is_all?}.
 #
 class Range
@@ -11,7 +11,7 @@ class Range
 
   # It is extended to handle {RangeExtd} objects.
   # For each element, that is, +Range#begin+ and +Range#end+,
-  # this uses their method of ==().  See {#eql?}.
+  # this uses their method of ==().
   #
   # As long as the comparison is limited within {Range} objects,
   # the returned value of this method has unchanged.
@@ -41,10 +41,10 @@ class Range
 
   alias_method :eql_prerangeextd?, :eql?  if ! self.method_defined?(:eql_prerangeextd?)	# No overwriting.
 
-  # Same as {#==}, but the comparison is made with eql?() method.
-  def eql?(r)
-    _equal_core(r, :eql?, :eql_prerangeextd?)
-  end
+  ## Same as {#==}, but the comparison is made with eql?() method.
+  #def eql?(r)
+  #  _equal_core(r, :eql?, :eql_prerangeextd?)
+  #end
 
   alias_method :size_prerangeextd?, :size  if ! self.method_defined?(:size_prerangeextd?) # No overwriting.
 
@@ -142,6 +142,7 @@ class Range
   # @example
   #   (nil..nil).empty?  # => false
   #   (nil..3).empty?    # => false
+  #   (true..true).empty?# => nil
   #   (1...1).empty?     # => nil
   #   (1..1).empty?      # => false
   #   RangeExtd(1...1,   true).empty? # => true
@@ -150,8 +151,11 @@ class Range
   #   RangeExtd(?a...?b, true).empty? # => true
   #   RangeExtd::NONE.empty?          # => true
   #
-  # @note to check whether it is either empty or invalid, use {#null?}.
-  # See {#valid?} and {RangeExtd.valid?}, too.
+  # @note {#empty?} returns nil when the object is invalid, and hence invalid objects
+  #   may appear to be not empty. If you want to get +true+ when the object is either
+  #   empty or invalid, use {#null?} instead.
+  #
+  # See {#valid?} and {RangeExtd.valid?} for the definition of the validity.
   #
   # @return [Boolean, nil]
   def empty?
@@ -203,7 +207,7 @@ class Range
   end	# def empty?
 
 
-  # Returns true if it is either empty or invalid.  false otherwise.
+  # Returns true if it is either empty or invalid, or false otherwise.
   #
   # See {#empty?} and {#valid?}.
   #
@@ -221,7 +225,7 @@ class Range
 
   # true only if self is eql? to RangeExtd::ALL
   #
-  # true if self is identical ({#eql?}) to {RangeExtd::ALL}
+  # true if self is identical (+eql?+) to {RangeExtd::ALL}
   #
   # (This is different from {#==}.)
   #
@@ -329,6 +333,7 @@ class Range
 
     # r is guaranteed to be a Range.
     # Neither self nor r is guaranteed to be RangeExtd (or RangeExtd::NONE)
+    return false if !_both_same_nowhere_parity?(r)  # inconsistent nil, non-nil, NOWHERE combination
     (_both_eqleql_nil?(r, method) && (self.exclude_end? ^! r.exclude_end?)) || self.send(method_pre, r)
   end	# def _equal_core(r, method, method_pre)
   private :_equal_core
@@ -352,6 +357,44 @@ class Range
     method_ok && is_self_begin_inf && is_other_begin_inf && is_self_end_inf && is_other_end_inf
   end
   private :_both_eqleql_nil?
+
+  # Returns the parity of both ends in Range with regard to {RangeExtd::Nowhere::NOWHERE}, non-nil, nil
+  #
+  # For example,
+  # if both begins are non-nil and both ends are {NilClass} nil, this returns true.
+  # If one end {RangeExtd::Nowhere::NOWHERE} the other end is {NilClass} nil, returns false
+  #
+  # Note that boundaries are not taken into account in this routine.
+  # If, for example, {#exclude_end?} contradict, regardless of the returne
+  # value of this routine, it should not be "equal".  The caller must handle it.
+  #
+  # == Background
+  #
+  # Although {RangeExtd::Nowhere::NOWHERE} looks like nil, it is different
+  # in the context of {Range} and is used only for representing *nowhere*.
+  # Therefore, it should be recognised as a different value from nil.
+  #
+  # @param other [Range, RangeExtd] Other object to compare with
+  def _both_same_nowhere_parity?(other)
+    p_self_begin = _parity_nowhere_nonnil_nil( self.begin)
+    p_othe_begin = _parity_nowhere_nonnil_nil(other.begin)
+    p_self_end   = _parity_nowhere_nonnil_nil( self.end)
+    p_othe_end   = _parity_nowhere_nonnil_nil(other.end)
+
+    (p_self_begin == p_othe_begin) && (p_self_end == p_othe_end)
+  end
+  private :_both_same_nowhere_parity?
+
+  # Core routine for {#_both_same_nowhere_parity?} to determine the parity of a value
+  #
+  # Note that RangeExtd::Infinity objects are regarded as +nil+.
+  #
+  # @return [Integer] (-1, 0, 1) for {RangeExtd::Nowhere::NOWHERE}, non-nil, nil respectively.
+  def _parity_nowhere_nonnil_nil(val)
+    return 0 if !val.nil? && !RangeExtd::Infinity.infinity?(val)
+    (val.respond_to?(:nowhere?) && val.nowhere?) ? -1 : 1
+  end
+  private :_parity_nowhere_nonnil_nil
 end	# class Range
 
 require_relative "../range_extd" if !defined?(RangeExtd)

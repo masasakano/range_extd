@@ -128,6 +128,7 @@ gem "minitest"
     InfF = Float::INFINITY
     InfP = RangeExtd::Infinity::POSITIVE
     InfN = RangeExtd::Infinity::NEGATIVE
+    NOWHERE = RangeExtd::Nowhere::NOWHERE
 
     def setup
       @ib = 1
@@ -965,6 +966,21 @@ gem "minitest"
       assert_equal false, ((?a...?a) == RangeExtd(?a...?b, true))
     end
 
+    def test_eql4
+      assert_equal((NOWHERE..nil), (NOWHERE..))
+      refute_equal((..nil), (..NOWHERE))
+      refute_equal((..nil), (NOWHERE..))
+
+      # The following is in fact unexpected...
+      # NOWHERE behaves like nil, and so I would expect it would be the same as (nil..?a).
+      # Note RangeExtd::Infinity::NEGATIVE is accepted.  It seems that
+      # the begin object must have <=> method, unless it is *literally* NilClass nil.
+      #
+      # In this particular case, this is not a problem, because
+      # NOWHERE desirably should not be used in conjunction with other objects
+      # in the first place.
+      assert_raises(ArgumentError, '"bad value for range" would be raised'){(NOWHERE..?a)}
+    end
 
     def test_begin
       assert_equal(@ib, @s11.begin)
@@ -1054,9 +1070,11 @@ gem "minitest"
       # (2..2).first(?a) : no implicit conversion of String into Integer (TypeError)
       # (true..true).first(1) : can't iterate from TrueClass (TypeError)
       assert_raises(RangeError){ RangeExtd::NONE.first }
+      assert_equal RangeExtd::NONE, RaE(3...3, true)
+      assert_equal 3, RaE(3...3, true).first, 'Alghough (3<...3) == NONE, (3<...3).first should return a value (in the same way as  (-Float::INFINITY..5).first returns -Infinity)'
       assert_raises(RangeError){ RangeExtd::NONE.first(2) }
-      assert_raises(ArgumentError){ RaE(2,3,true).first(1,2) }
-      assert_raises(ArgumentError){ RaE(2,3,true).first(-1) }
+      assert_raises(ArgumentError){ RaE(2,3,true).first(1,2) }  # Wrong number of arguments
+      assert_raises(ArgumentError){ RaE(2,3,true).first(-1) }   # Negative index
     end	# def test_first
 
 
@@ -1087,6 +1105,7 @@ gem "minitest"
     end
 
 
+    # alias to :===, :member?
     def test_include
       assert  @s11.include?(@ib)
       assert  @s11.include?(@ie)
@@ -1111,6 +1130,13 @@ gem "minitest"
       assert !(RangeExtd.new("a", "z", 777) === "a")
       assert  (RangeExtd.new("a", "z", nil) === "a")
       assert  (RangeExtd.new("a", "z", 777) === "b")
+
+      assert  (RaE(..nil, true) === "b")
+      assert  (RaE(..nil, true) === nil)
+      assert  (RangeExtd::ALL  === ?b)
+      refute  (RangeExtd::NONE === ?b)
+      refute  (RangeExtd::NONE === nil)     # NONE includes nothing
+      refute  (RangeExtd::NONE === NOWHERE) # NONE includes nothing, even NOWHERE (because of exclude_begin/end)
     end	# def test_include
 
 
@@ -1179,11 +1205,41 @@ gem "minitest"
     end	# def test_cover
 
 
+    # No redefinition of the method, because super() works fine!
+    def test_count
+      assert_equal 5, RaE(1..5).count
+      assert_equal 4, RaE(1...5).count
+      assert_equal 3, RaE(1...5, true).count
+      assert_equal 5, RaE(1...5.1).count
+      assert_equal 4, RaE(1...5.1, true).count
+      assert_raises(TypeError){ RaE(1.0..5).count }  # can't iterate from Float
+      assert_equal 0, RaE(1..5.1).count(5.1)
+      assert_equal 1, RaE(1..5.1).count(1)
+      assert_equal 0, RaE(1..5.1, true).count(1)
+      assert_equal 2, RaE(1..5.1).count{|i| i<3}
+      assert_equal 1, RaE(1..5.1, true).count{|i| i<3}
+      assert_raises(TypeError){    (..5).count{|i| i<3} }  # can't iterate from NilClass
+      assert_raises(TypeError){ RaE(..5).count{|i| i<3} }
+      # (1..).count{|i| i<3}  # => infinite loop
+      assert_equal InfF, RaE(5..).count
+      assert_equal InfF, RaE(..5).count
+      assert_equal InfF,        (..nil).count
+      assert_raises(TypeError){ (..nil).count(3) }  # can't iterate from NilClass
+      assert_raises(TypeError){ (..nil).count{|i| i<3} }
+      assert_equal InfF,    (-Float::INFINITY..nil).count
+      assert_equal InfF, RaE(-Float::INFINITY..nil, true).count
+      assert_raises(TypeError){    (-Float::INFINITY..Float::INFINITY).count } # can't iterate from Float (TypeError)
+      assert_raises(TypeError){ RaE(-Float::INFINITY..Float::INFINITY).count }
+      assert_equal InfF, RangeExtd::ALL.count  # A special case, like (..nil).
+    end
+
+
     def test_hash
       assert_equal(@r11.hash, @s11.hash)
       assert_equal(@r12.hash, @s12.hash)
-      assert (@r12.hash != @s22.hash)
-      refute_equal((...nil).hash, RangeExtd::NONE.hash)
+      refute_equal(@r12.hash, @s22.hash)
+      refute_equal RangeExtd::NONE.hash,     (...nil).hash
+      refute_equal RangeExtd::NONE.hash, RaE((...nil), true).hash
     end	# def test_hash
 
     def test_min
@@ -1194,17 +1250,25 @@ gem "minitest"
 
       assert_equal(@ie-1, @s22.min{|a,b| -a <=> -b})
 
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, :exclude_begin => true).min
-      end
+      assert_raises(TypeError){ RangeExtd.new(1.0, 5, :exclude_begin => true).min }
+      assert_raises(RangeError){ (..3).min } # cannot get the minimum of beginless range
+
+      assert_equal(?b,    (?b...).min)
+      assert_equal(?b,    (?b...InfP).min)
+      assert_equal(?b, RaE(?b...InfP).min)
+      assert_equal(?c, RaE(?b...InfP, true).min)
+      assert_raises(RangeError){ RaE(..?z).min }
+      assert_equal(-InfF, RaE(-InfF..9.2).min)
+      assert_equal InfN,  RaE(InfN..?z).min
     end	# def test_min
 
     def test_min_by
       assert_equal(@ib+1, @s22.min_by.each{|i| i})
 
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, :exclude_begin => true).min_by
-      end
+      assert_equal Enumerator,  RangeExtd.new(1.0, 5, true).min_by.class
+      assert_raises(TypeError){ RangeExtd.new(1.0, 5, true).min_by{|i|} }
+      assert_raises(TypeError){ RangeExtd.new(1.0, 5, true).min_by.each{|i| i} } # can't iterate from Float (TypeError)
+      assert_equal 2,  RangeExtd.new(1..5, exclude_begin: true).min_by.each{|i| i}
 
       assert_equal(@ie-1, @s22.min_by{|a| -a })
     end	# def test_min_by
@@ -1218,24 +1282,26 @@ gem "minitest"
 
       assert_equal([@ie-1,@ib+1], @s22.minmax{|a,b| -a <=> -b})	# Not the best test...
 
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, true).minmax
-      end
+      assert_raises(TypeError){ RangeExtd.new(1.0, 5, true).minmax }
+      assert_raises(RangeError){    (?b...).minmax } # cannot get the maximum of endless range
+      assert_raises(RangeError){ RaE(?b...).minmax }
     end	# def test_minmax
 
 
     def test_minmax_by
       assert_equal([@ib+1,@ie-1], @s22.minmax_by.each{|i| i})
 
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, true).minmax_by
-      end
+      assert_raises(TypeError){ (1.0...5).minmax_by{|i| } }
+      assert_raises(TypeError){ RangeExtd.new(1.0, 5, true).minmax_by{|i| } }
+      assert_equal Enumerator,  RangeExtd.new(1.0, 5, true).minmax_by.class
 
       assert_equal([@ie-1,@ib+1], @s22.minmax_by{|a| -a })
     end	# def test_minmax_by
 
 
     def test_max
+      assert_raises(TypeError){ (2.0...4.9).max } # cannot exclude non Integer end value
+      assert_raises(TypeError){ (1.3...5).max }   # cannot exclude end value with non Integer begin value
       assert_equal(@ie,   @s11.max)
       assert_equal(@ie-1, @s12.max)
       assert_equal(@ie,   @s21.max)
@@ -1243,20 +1309,22 @@ gem "minitest"
 
       assert_equal(@ib+1, @s22.max{|a,b| -a <=> -b})	# Not the best test...
 
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, true).max
-      end
+      assert_equal 5, RaE(1.0, 5, true).max
+
+      assert_raises(RangeError){    (...?z).max } # cannot get the maximum of beginless range with custom comparison method
+      assert_raises(RangeError){ RaE(...?z, true).max }
+      assert_equal(?z, RaE(InfN..?z).max)
+      assert_nil  RaE(5...6, true).max
     end	# def test_max
 
 
     def test_max_by
       assert_equal(@ie-1, @s22.max_by.each{|i| i})
-
-      assert_raises TypeError do
-        RangeExtd.new(1.0, 5, true).max_by
-      end
+      assert_equal Enumerator,  RaE(1.0, 5, true).max_by.class
+      assert_raises(TypeError){ RaE(1.0, 5, true).max_by{|i|} } # can't iterate from Float
 
       assert_equal(@ib+1, @s22.max_by{|a| -a })
+      assert_equal(3, RaE(3...6).max_by{|a| -a })
     end	# def test_max_by
 
 
@@ -1324,6 +1392,28 @@ gem "minitest"
       end
     end	# def test_size
 
+    # Following the main doc...
+    def test_size2
+      assert_equal InfF, RaE(5..InfF).size
+      assert_equal InfF, RaE(..?z).size            # This contradicts the specification. Should be nil.
+      assert_equal InfF, RaE(...?z, true).size
+      assert_equal InfF, RaE(..nil).size           # This may contradict the specification?
+      assert_equal InfF, RaE(...nil, true).size
+      assert_equal InfF, RaE(3.., true).size
+      assert_equal InfF, RaE(..?a, true).size      # This contradicts the specification. Should be nil.
+      assert_equal InfF, RaE(InfN...?a, true).size
+      assert_nil         RaE(?a.., true).size
+      assert_nil         RaE(?a...InfP, true).size
+      assert_equal    0, RangeExtd::NONE.size  # This specification may change.
+      assert_nil         RaE(?a...?a, true).size   # Any size with non-Numeric Range is nil.
+
+      # More perplexing standard Ruby behaviours.
+      # Bug #18993: https://bugs.ruby-lang.org/issues/18993
+      assert_equal    3, (5.quo(3)...5).size      # => 3
+      assert_equal    4, (5.quo(3).to_f...5).size # => 4
+      assert_equal    4, (5.quo(3)..5).size       # => 4
+      assert_equal    4, (5.quo(3).to_f..5).size  # => 4
+    end	# def test_size2
 
     def test_step
       ns=0; @s11.step(2){|i| ns+=i}
@@ -1615,27 +1705,56 @@ gem "minitest"
       assert (RaE(0,0,true,true) == RangeExtd::NONE)
       assert  RaE(0,0,true,true).empty?
       refute  RaE(0,0,true,true).is_none?
-      assert  RangeExtd::NONE.is_none?
 
       refute  (RangeExtd( 1, 1,true,true).is_none?)
       refute  (RangeExtd(?a,?a,true,true).is_none?)
       refute  ((1...1).is_none?)
 
+      assert  RangeExtd::NONE.is_none?
       assert  RangeExtd::NONE.valid?
       assert  RangeExtd::NONE.null?
       assert  RangeExtd::NONE.empty?
-      assert !RangeExtd(0...0, true).is_none?
-      assert !(nil..nil).is_none?
-      assert !(nil...nil).is_none?
-      assert_equal RaE(0...1, true), RangeExtd::NONE
+      assert_equal RaE(NOWHERE...NOWHERE, true), RangeExtd::NONE
+      refute       RaE(NOWHERE...NOWHERE, true).is_none?, "Even an equivalent RangeExtd to NONE should NOT be true==is_none?"
+
+      assert_nil  RangeExtd::NONE.begin
+      assert      RangeExtd::NONE.begin.nowhere?, "RangeExtd::NONE.begin should be RangeExtd::Nowhere::NOWHERE"
+      assert_nil  RangeExtd::NONE.end
+      assert      RangeExtd::NONE.end.nowhere?
+
+      refute RaE(0...0, true).is_none?
+      refute (nil..nil).is_none?
+      refute (nil...nil).is_none?
+      assert RaE(...nil, true).valid?
+      refute RaE(...nil, true).null?
+      refute RaE(...nil, true).empty?
+
+      refute_equal RaE(0...0, true),   RaE(?a...?a, true)
+      assert_equal RaE(0...1, true),   RaE(5...6, true)
+      refute      (RaE(0...1, true).eql?(RaE(5...6, true)))
+      assert_equal RaE(0...1, true),   RaE(1...1, true)
+      assert_equal RaE(0...1, true),   RangeExtd::NONE
+      assert_equal RaE(?a...?b, true), RangeExtd::NONE
+      refute_equal((1...1), RangeExtd::NONE, "comparison with invalid Range should return false")
       assert_equal RaE(0, 0, true, true), RangeExtd::NONE
       assert_equal RaE(?a, ?a, true, true), RangeExtd::NONE
       assert_equal RaE(?a, ?b, true, true), RangeExtd::NONE
       assert      !RaE(?a, ?b, true, true).is_none?
       assert       RaE(?a, ?b, true, true).empty?
       assert       RaE(?a, ?b, true, true).null?
-      assert_nil  RangeExtd::NONE.begin
-      assert_nil  RangeExtd::NONE.end
+
+      assert( RangeExtd::NONE ==  RangeExtd::NONE )
+      refute( RangeExtd::NONE === RangeExtd::NONE )
+      refute_equal RaE(...NOWHERE, true),        RangeExtd::NONE
+      refute_equal(   (..nil),        RangeExtd::NONE)
+      refute      (RaE(...nil, true).eql?(RangeExtd::NONE))
+      refute_equal(RaE(...nil, true), RangeExtd::NONE)
+      refute_equal RangeExtd::NONE,    (..nil)
+      refute_equal RangeExtd::NONE, RaE(...nil, true)
+      refute_equal RangeExtd::NONE, RangeExtd::ALL
+      refute_equal RangeExtd::ALL,  RangeExtd::NONE
+      assert_equal RangeExtd::ALL, (..nil)
+      assert_equal((..nil), RangeExtd::ALL)
     end
 
 
@@ -1647,9 +1766,9 @@ gem "minitest"
       assert  RaE(?a, ?b, 5, 5) == RaE(?c, ?d, 5, 5)
       assert  RaE(11, 12, 5, 5) == RaE(11, 11, 5, 5)
       assert  RaE(11, 12, 5, 5) == RaE(1, 2, 5, 5)
-      assert  RaE(11, 12, 5, 5).eql?( RaE(1, 2, 5, 5) )
+      refute  RaE(11, 12, 5, 5).eql?( RaE(1, 2, 5, 5) )
       assert  RaE(11, 12, 5, 5) == RaE(3.0, 3.0, 5, 5)
-      assert !RaE(11, 12, 5, 5).eql?( RaE(3.0, 3.0, 5, 5) )
+      refute  RaE(11, 12, 5, 5).eql?( RaE(3.0, 3.0, 5, 5) )
       #assert_equal RangeExtd::NONE, RangeExtd(0...0, :exclude_begin => true)	# => ArgumentError 
       #assert_equal RangeExtd(0...0, :exclude_begin => true), RangeExtd::NONE
     end
@@ -1731,7 +1850,7 @@ gem "minitest"
       assert_equal 'z', rs.last
       assert      !rs.cover?(?z)
       assert       rs.cover?(?x)
-      assert_nil  (rs === ?x)
+      assert      (rs === ?x)  # This used to be nil.
       assert_equal RangeExtd::Infinity::NEGATIVE, rs.begin	# It is Infinity,
       refute_equal(-Float::INFINITY, rs.begin)
       assert     ! rs.begin.positive?
@@ -1761,13 +1880,13 @@ gem "minitest"
       assert      (RaE(?c,?c,T,T) != RaE(1, 1, T, T))	# (1<...1) != (?c<...?c)   # - because of Fixnum and String
       assert_equal RaE(3, 4, T, T), RaE(1.0, 1.0, T, T)	# (1.0<...1.0) == (3<...4) # => true
 
-      # RangeExtd#eql?
+      # RangeExtd#eql?  (removed from doc)
       assert_equal (1.0...5.0), (1...5)			# (1...5) ==  (1.0...5.0)  # => true
-      assert !(1...5).eql?(1.0...5.0)			# (1...5).eql?(1.0...5.0)  # => false
-      assert  RaE(1,  1,  T,T).eql?(RangeExtd::NONE)	# (1<...1).eql?(  RangeExtd::NONE)  # => true
-      assert  RaE(?a, ?b, T,T).eql?(RangeExtd::NONE)	# (?a<...?b).eql?(RangeExtd::NONE)  # => true
-      assert  RaE(1,  1,  T,T).eql?(RaE(3,4,T,T))	# (1<...1).eql?(    3<...4)  # => true
-      assert !RaE(1.0,1.0,T,T).eql?(RaE(3,4,T,T))	#  (1.0<...1.0).eql?(3<...4)  # => false
+      refute (1...5).eql?(1.0...5.0)			# (1...5).eql?(1.0...5.0)  # => false
+      refute RaE(1,  1,  T,T).eql?(RangeExtd::NONE)	# (1<...1).eql?(  RangeExtd::NONE)  # => true
+      refute RaE(?a, ?b, T,T).eql?(RangeExtd::NONE)	# (?a<...?b).eql?(RangeExtd::NONE)  # => true
+      refute RaE(1,  1,  T,T).eql?(RaE(3,4,T,T))	# (1<...1).eql?(    3<...4)  # => true
+      refute RaE(1.0,1.0,T,T).eql?(RaE(3,4,T,T))	#  (1.0<...1.0).eql?(3<...4)  # => false
 
       # RangeExtd#===
       assert  ((?D..?z) === ?c)

@@ -22,11 +22,11 @@ class RangeExtd < Range
   #
   # ==Summary
   #
-  # Class to hold just two constants: 
+  # Class to hold just two main constants: 
   # * RangeExtd::Infinity::NEGATIVE
   # * RangeExtd::Infinity::POSITIVE
   #
-  # and two more:
+  # and two internal ones:
   #
   # * CLASSES_ACCEPTABLE (see below)
   # * FLOAT_INFINITY  (OBSOLETE; workaround for Ruby 1.8 to represent Float::INFINITY)
@@ -47,7 +47,7 @@ class RangeExtd < Range
   #
   # There is a note of caution.
   # The method {#<=>} is defined in this class as mentioned above.
-  # However any operator is, by Ruby's definition, not commutative,
+  # However, any operator is, by Ruby's definition, not commutative
   # unless both the classes define so.
   #
   # There are only three built-in classes that are Comparable: String, Time and Numeric
@@ -73,6 +73,8 @@ class RangeExtd < Range
   # and +range_extd/numeric+ (or all-inclusive wrapper +range_extd/load_all+).
   # If your code requires them, [#<=>] operators in String and Numeric
   # will work commutatively with {RangeExtd::Infinity}.
+  # Note that external gem for Numeric like +BigFloat+, if you require it, may not work
+  # straightaway and so the following measure needs to be taken.
   #
   # Once the library +range_extd/object+ has been required (your code must 
   # explicitly include the statement +require "range_extd/object"+,
@@ -373,7 +375,8 @@ __EOF__
 
   # True if obj is either +Float::INFINITY+ or Infinity type.
   #
-  # Note +Float#infinite?+ is defined - how to memorise this method name.
+  # Note +Float#infinite?+ is defined - maybe that helps to memorise this method name
+  # (as opposed to +infinity?+)?
   #
   # @param obj [Object]
   def self.infinite?(obj)
