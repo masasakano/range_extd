@@ -1,4 +1,20 @@
 -----
+(Version: 2.0)
+2022-09-08  Masa Sakano
+  * Major upgrade to deal with Beginless Range of Ruby-2.7
+  
+    * Library path changed from `range_extd/range_extd.rb` to `range_extd.rb`
+      * `range_extd/infinity/infinity.rb` => `range_extd/infinity.rb`
+    * New class `RangeExtd::Nowhere` is created.
+    * Inclusion of changes to Object and Numeric is now optional.
+    * Files split into sub files under `range_extd/` 
+      * `range.rb`
+      * `numeric.rb`
+      * `nil_class.rb`
+      * `object.rb`
+    * Utility loading script is added: `range_extd/load_all.rb`
+
+-----
 (Version: 1.1.1)
 2020-01-27  Masa Sakano
   * Fixed warnings with Ruby-2.7
