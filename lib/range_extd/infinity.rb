@@ -369,19 +369,17 @@ __EOF__
   #
   # @param obj [Object]
   def self.infinity?(obj)
-    kl = obj.class
-    kl.method_defined?(:infinity?) && kl.method_defined?(:positive?) && kl.method_defined?(:negative?)
+    obj.respond_to?(:infinity?) && obj.respond_to?(:positive?) && obj.respond_to?(:negative?)
   end
 
   # True if obj is either +Float::INFINITY+ or Infinity type.
   #
-  # Note +Float#infinite?+ is defined - maybe that helps to memorise this method name
-  # (as opposed to +infinity?+)?
+  # Note +Float#infinite?+ is defined (and actually it returns 1, not true);
+  # maybe that helps to memorise this method name (as opposed to +infinity?+)?
   #
   # @param obj [Object]
   def self.infinite?(obj)
-    kl = obj.class
-    (kl.method_defined?(:infinite?) && obj.infinite?) || (kl.method_defined?(:infinity?) && obj.infinity?)
+    (obj.respond_to?(:infinite?) && obj.infinite?) || (obj.respond_to?(:infinity?) && obj.infinity?)
   end
 
   ######################################

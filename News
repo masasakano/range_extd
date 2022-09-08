@@ -1,4 +1,8 @@
 -----
+(Version: 2.0) 2022-09-03
+ * Release of Ver.2.0.  Supports Beginless Range in Ruby 2.7. Change in the library paths.
+
+-----
 (Version: 1.1) 2019-11-01
  * Release of Ver.1.1.  A significant upgrade with some change in the specification of how to deal with infinities.
 

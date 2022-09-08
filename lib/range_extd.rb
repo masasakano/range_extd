@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-## Load required files.  (At the end of this file, "range_extd/range" is also required.
+## Load required files in this library.  (At the end of this file, "range_extd/range" is also required.)
 req_files = %w(range_extd/infinity range_extd/nowhere range_extd/nil_class)
 req_files.each do |req_file|
   begin
@@ -321,7 +321,7 @@ class RangeExtd < Range
     end
 
     begin
-      1.0+(obj)	# OK if Numeric.
+      _ = 1.0+obj	# OK if Numeric.
       return cover?(obj)  # This excludes begin() if need be.
     rescue TypeError
     end
@@ -1048,8 +1048,10 @@ class RangeExtd < Range
   #    of +false+ (namely, inclusive) for {#begin}, whereas
   #    +RangeExtd(1...1, true)+ is valid and equal (+==+) to
   #    {RangeExtd::NONE}.
+  # 6. If either or both of {#begin} and {#end} is {RangeExtd::Nowhere::NOWHERE},
+  #    the range has to be {RangeExtd::NONE}.
   #
-  # Note the last point may change in the future release.
+  # Note the second last point may change in the future release.
   #
   # Note ([2]..[5]) is NOT valid, because Array does not include Comparable
   # for some reason, as of Ruby 2.1.1, even though it has the redefined
@@ -1075,6 +1077,7 @@ class RangeExtd < Range
   #    RangeExtd.valid?(3..Float::INFINITY, true)  # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d)        # => true
   #    RangeExtd.valid?(RangeExtd::Infinity::NEGATIVE..?d, true)  # => true
+  #    RangeExtd.valid?(RangeExtd::Nowhere::NOWHERE..nil)  # => false
   #
   # @note The flag of exclude_begin|end can be given in the arguments in a couple of ways.
   #  If there is any duplication, those specified in the optional hash have the highest
@@ -1097,7 +1100,11 @@ class RangeExtd < Range
     (vbeg, vend, exc_beg, exc_end) = _get_init_args(*inar)
 
     if defined?(inar[0].is_none?) && inar[0].is_none? && exc_beg && exc_end
+      # inar[0] is RangeExtd::NONE
       return true
+    elsif vbeg.nil? && vbeg.nowhere? || vend.nil? && vend.nowhere?
+      # RangeExtd::Nowhere::NOWHERE should not reside anywhere but in RangeExtd::NONE
+      return false
     elsif vbeg.nil? && vend.nil?
       return true
     end

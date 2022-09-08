@@ -16,9 +16,11 @@ end
 # But checking/displaying the required files individually.
 arlibbase = %w(range_extd/nowhere range_extd/nil_class range_extd/object range_extd/numeric range_extd/range range_extd range_extd/infinity range_extd/load_all)
 arlibrelbase = arlibbase.map{|i| "../lib/"+i}
+print "NOTE: Running: "; p File.basename(__FILE__)
 print "NOTE: Library relative paths: "; p arlibrelbase
-print "NOTE: Library full paths:\n"
-arlibbase.each do |elibbase|
+arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}+%w(range_extd)
+puts  "NOTE: Library full paths for #{arlibbase4full.inspect}: "
+arlibbase4full.each do |elibbase|
   ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/)
   print elibbase+": " if ar.empty?; p ar
 end

@@ -12,9 +12,11 @@ arlibrelbase.each do |elibbase|
   require_relative elibbase
 end	# arlibbase.each do |elibbase|
 
+print "NOTE: Running: "; p File.basename(__FILE__)
 print "NOTE: Library relative paths: "; p arlibrelbase
-print "NOTE: Library full paths:\n"; p arlibbase.map{|i| i.sub(%r@^(../)+@, "")}
-arlibbase.map{|i| i.sub(%r@^(../)+@, "")}.each do |elibbase|
+arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}+%w(range_extd)
+puts  "NOTE: Library full paths for #{arlibbase4full.inspect}: "
+arlibbase4full.each do |elibbase|
   ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
   print elibbase+": " if ar.empty?; p ar
 end
@@ -1714,8 +1716,10 @@ gem "minitest"
       assert  RangeExtd::NONE.valid?
       assert  RangeExtd::NONE.null?
       assert  RangeExtd::NONE.empty?
-      assert_equal RaE(NOWHERE...NOWHERE, true), RangeExtd::NONE
-      refute       RaE(NOWHERE...NOWHERE, true).is_none?, "Even an equivalent RangeExtd to NONE should NOT be true==is_none?"
+      assert_raises(RangeError){ RaE(NOWHERE...NOWHERE, true) }
+      refute((NOWHERE...NOWHERE).valid?, "RangeExtd::Nowhere::NOWHERE should not reside anywhere but in RangeExtd::NONE")
+      #assert_equal RaE(NOWHERE...NOWHERE, true), RangeExtd::NONE
+      #refute       RaE(NOWHERE...NOWHERE, true).is_none?, "Even an equivalent RangeExtd to NONE should NOT be true==is_none?"
 
       assert_nil  RangeExtd::NONE.begin
       assert      RangeExtd::NONE.begin.nowhere?, "RangeExtd::NONE.begin should be RangeExtd::Nowhere::NOWHERE"
@@ -1745,7 +1749,6 @@ gem "minitest"
 
       assert( RangeExtd::NONE ==  RangeExtd::NONE )
       refute( RangeExtd::NONE === RangeExtd::NONE )
-      refute_equal RaE(...NOWHERE, true),        RangeExtd::NONE
       refute_equal(   (..nil),        RangeExtd::NONE)
       refute      (RaE(...nil, true).eql?(RangeExtd::NONE))
       refute_equal(RaE(...nil, true), RangeExtd::NONE)

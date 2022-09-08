@@ -10,9 +10,9 @@ Gem::Specification.new do |s|
   # s.executables << 'hola'
   # s.bindir = 'bin'
   s.authors = ["Masa Sakano"]
-  s.date = %q{2020-01-27}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
+  s.date = %q{2022-09-08}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{RangeExtd - Extended Range class with exclude_begin and open-ends}
-  s.description = %q{Package for a subclass of Range, RangeExtd and RangeExtd::Infinity.  The former defines a range that enables an exclusion of the begin boundary, in addition to the end boundary as in the built-in Range, and accepts open-ended ranges to infinity for either (or both) positive/negative direction.  The latter has the two constant objects, POSITIVE and NEGATIVE, and they are a generalised Infinity of Float::INFINITY to any Comparable objects.}
+  s.description = %q{Package for a subclass of Range, RangeExtd, containing RangeExtd::Infinity and RangeExtd::Nowhere. RangeExtd defines ranges that enable an exclusion of the begin boundary, in addition to the end boundary as in the built-in Range, and accepts open-ended ranges to infinity for either (or both) positive/negative direction.  The open-ended boundaries are represented by two constant objects, POSITIVE and NEGATIVE of RangeExtd::Infinity, and they are a generalised Infinity of Float::INFINITY to any Comparable objects, which are in practice similar to built-in beginless/endless Ranges.}
   # s.email = %q{abc@example.com}
   s.extra_rdoc_files = [
     # "LICENSE",
@@ -39,7 +39,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
 
   # s.require_paths = ["lib"]
-  s.required_ruby_version = '>= 2.0'  # required >= 2.6 for testing.
+  s.required_ruby_version = '>= 2.7'
   s.test_files = Dir['test/**/*.rb']
   s.test_files.reject! { |fn| File.symlink? fn }
   # s.requirements << 'libmagick, v6.0'	# Simply, info to users.

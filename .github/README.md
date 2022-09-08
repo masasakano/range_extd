@@ -22,9 +22,9 @@ ranges, most typically Float and/or Rational.
 [Rangeary](https://rubygems.org/gems/rangeary) uses this library to fullest to
 realise the concept of logical range operations. In doing them, the concept of
 potentially open-ended Ranges with potential exclusions of begin and end is
-essential.  For example, the negation of Range +(?a..?d)+ is a pair of Ranges
-+(-"Infinity-Character"...3)+ and +(?d(exclusive).."Infinity-Character")+ and
-its negation is back to the original +(?a..?d)+.  Such operations are possible
+essential.  For example, the negation of Range `(?a..?d)` is a pair of Ranges
+`(-"Infinity-Character"...3)` and `(?d(exclusive).."Infinity-Character")` and
+its negation is back to the original `(?a..?d)`.  Such operations are possible
 only with this class `RangeExtd` 
 
 Rangeary: {https://rubygems.org/gems/rangeary}
@@ -52,7 +52,7 @@ I hope you find this package to be useful.
 ### Validity of a Range
 
 Ruby built-in Range is very permissive for the elements (members).  For
-example, +(true...true)+ is a valid Range whatever it means, although its use
+example, `(true...true)` is a valid Range whatever it means, although its use
 is highly limited because you cannot iterate over it, that is, methods like
 `each` with an associated iterator and `to_a` would raise an Exception
 (`TypeError`).
@@ -67,8 +67,10 @@ inclusive for the begin boundary, yet exclusive for the end boundary, which
 are contradictory to each other.  With this RangeExtd class, the following two
 are regarded as valid ranges,
 
-    * RangeExtd.new(3, 3, true,  true)   # => an empty range
-    * RangeExtd.new(3, 3, false, false)  # => a single-point range (3..3)
+```ruby
+* RangeExtd.new(3, 3, true,  true)   # => an empty range
+* RangeExtd.new(3, 3, false, false)  # => a single-point range (3..3)
+```
 
 However, as long as the use is closed within the built-in Range, nothing has
 changed, so it is completely compatible with the standard Ruby.
@@ -91,23 +93,26 @@ class {RangeExtd::Infinity}
 *   {RangeExtd::Infinity::POSITIVE}
 
 
-They are basically the objects that **generalise** `Float::INFINITY` to any
+They are basically the objects that **generalize** `Float::INFINITY` to any
 Comparable object.  For example,
 
-    ("a"..RangeExtd::Infinity::POSITIVE).each
+```ruby
+("a"..RangeExtd::Infinity::POSITIVE).each
+```
 
 gives an infinite iterator with `String#succ`, starting from "a" (therefore,
 make sure to code so it breaks the iterator at one stage!). In this case it
 work in an identical way to (a Ruby-2.6 form of)
 
-    ("a"..).each
+```ruby
+("a"..).each
+```
 
-### News: Library locations and else
+### News: Library locations and support of beginless Ranges
 
 **IMPORTANT**: The paths for the libraries are moved up by one directory in
 {RangeExtd} Ver.2 from Ver.1 in order that their locations follow the Ruby
-Gems convention.  In short, the standard way to require is +require
-"range_extd"+, the path of which used to be "range_extd/range_extd"
+Gems convention.  In short, the standard way to require is `require "range_extd"`, the path of which used to be "range_extd/range_extd"
 
 Version of {RangeExtd} is now 2.0.
 
@@ -116,21 +121,19 @@ more extensive information, see History section in this doc.
 
 #### News: Beginless Range supported
 
-Ruby 2.7 supports [Beginless
-range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range).
+Ruby 2.7 supports [Beginless range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range).
 
 `RangeExtd` also supports it now. With this, there are important changes in
 specification.
 
 First, {RangeExtd::NONE} is now in practice
-+RangeExtd((RangeExtd::Nowhere::NOWHERE...RangeExtd::Nowhere::NOWHERE),
-true)+, that is, both ends are {RangeExtd::Nowhere::NOWHERE} and both ends
+`RangeExtd((RangeExtd::Nowhere::NOWHERE...RangeExtd::Nowhere::NOWHERE), true)`, that is, both ends are {RangeExtd::Nowhere::NOWHERE} and both ends
 ({RangeExtd#begin} and {RangeExtd#end}) are exclusive. In the previous
 versions, both ends of {RangeExtd::NONE} used to have `nil`. Range
-+(nil..nil)+ did not use to be allowed in Ruby-2.6 or earlier, and hence it
+`(nil..nil)` did not use to be allowed in Ruby-2.6 or earlier, and hence it
 was unique to {RangeExtd::NONE}, conveniently. However, Ruby-2.7 and later now
-accepts nil to nil Range.  Then, +(nil..nil)+ is perfectly valid and it has in
-practice no difference from +RangeExtd((nil...nil), true)+, which used to be
+accepts nil to nil Range.  Then, `(nil..nil)` is perfectly valid and it has in
+practice no difference from `RangeExtd((nil...nil), true)`, which used to be
 the form of {RangeExtd::NONE}, despite the fact the former is a completely
 different object that is close to {RangeExtd::ALL} except for the exclusion
 flags.  That is why this change is required.
@@ -142,36 +145,36 @@ change from users' point of view. The begin and end value for
 literally `nil` in {RangeExtd} Ver.1 and earlier, the use of
 {RangeExtd::Nowhere::NOWHERE} in {RangeExtd::NONE} in Ver.2 should not demand
 any changes in the existing code that use {RangeExtd::NONE}. The recommended
-way to check whether an object is {RangeExtd::NONE} or not is use of
-{RangeExtd#is_none?} (as it always has been). Or, in most practical cases,
-{Range#null?} is likely to be what a user wants (n.b., a potential caveat is
-+(true..true).null?+ returns `false`; see subsection "RangeExtd Class" in
-"Description" in this doc for detail).
+way to check whether an object is {RangeExtd::NONE} or not with use of
+{RangeExtd#is_none?} (as it always has been) (do not be confused with
+`Enumerable#none?`). Or, in most practical cases, {Range#null?} is likely to
+be what a user wants (n.b., a potential caveat is `(true..true).null?` returns
+`false`; see subsection "RangeExtd Class" in "Description" in this doc for
+detail).
 
-Second, +RangeExtd.valid?(nil..)+ now returns `true`, which used to be
+Second, `RangeExtd.valid?(nil..)` now returns `true`, which used to be
 `false`, and it is equal to {RangeExtd::ALL}.
 
-For example, +"[abc"](nil..)+ is a perfectly valid Ruby expression in Ruby-2.7
+For example, `"[abc"](nil..)` is a perfectly valid Ruby expression in Ruby-2.7
 and later, though it used to be invalid or even SyntaxError in earlier
 versions of Ruby. Hence it would be strange if `RangeExtd` considered it
 invalid.
 
-Note that +RangeExtd.valid?(true..)+ still returns `false`.
+Note that `RangeExtd.valid?(true..)` still returns `false`.
 
 Other major changes in specification include:
 
-*   +RangeExtd::Infinity#succ+ is now undefined, in line with Float.
+*   `RangeExtd::Infinity#succ` is now undefined, in line with Float.
 *   Extensions for `Object` and `Numeric` are now not in default and optional.
-*   +RangeExtd#eql?+ follows the Ruby default behaviour (comparison based on
+*   `RangeExtd#eql?` follows the Ruby default behaviour (comparison based on
     [#hash]), eliminating special cases in comparison with {RangeExtd::NONE}.
-*   Fixed a bug where +RangeExtd#min_by+ (and `max_by` and `minmax_by`) did
+*   Fixed a bug where `RangeExtd#min_by` (and `max_by` and `minmax_by`) did
     not work correctly.
 
 
 #### News: Endless Range supported
 
-Now, as of 2019 October, this fully supports [Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+Now, as of 2019 October, this fully supports [Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 introduced in Ruby 2.6.  It is released as Version 1.* finally!
 
 #### NOTE: Relationship with Rangesmaller
@@ -185,10 +188,8 @@ instance. {https://rubygems.org/gems/rangesmaller}
 
 ### Endless and Beginless Ranges
 
-[Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
-and [Beginless
-Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
+[Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+and [Beginless Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 were introduced in Ruby 2.6 and 2.7, respectively, released in Decembers 2018
 and 2019.
 
@@ -209,17 +210,19 @@ of the standard Ruby, particularly Numeric, because Ruby Ranges for Numeric
 practically provide both functionalities. These examples highlight the
 difference:
 
-    "abcdef"[..2]   # => "abc"
-    "abcdef"[..2.0] # => "abc"
-    "abcdef"[(-Float::INFINITY)..2]  # raise (RangeError)
-    "abcdef"[(-1)..2] # => ""
-    "abcdef"[(-6)..2] # => "abc"
-    "abcdef"[(-7)..2] # => nil
-    (-Float::INFINITY..5).first(1) # raise: can't iterate from Float (TypeError)
-    (-Float::INFINITY..5).first    # => -Infinity
-    (-Float::INFINITY..5).begin    # => -Infinity
-    (..5).first   # raise: cannot get the first element of beginless range (RangeError)
-    (..5).begin   # => nil
+```ruby
+"abcdef"[..2]   # => "abc"
+"abcdef"[..2.0] # => "abc"
+"abcdef"[(-Float::INFINITY)..2]  # raise (RangeError)
+"abcdef"[(-1)..2] # => ""
+"abcdef"[(-6)..2] # => "abc"
+"abcdef"[(-7)..2] # => nil
+(-Float::INFINITY..5).first(1) # raise: can't iterate from Float (TypeError)
+(-Float::INFINITY..5).first    # => -Infinity
+(-Float::INFINITY..5).begin    # => -Infinity
+(..5).first   # raise: cannot get the first element of beginless range (RangeError)
+(..5).begin   # => nil
+```
 
 The first (and second) examples use a beginless Range, where the begin value
 is **undefined**. Then, String class **interprets** the "begin value" as 0. 
@@ -228,17 +231,17 @@ because the begin value is defined but infinitely negative. Indeed, a negative
 value for the index for a String has a special meaning as demonstrated in the
 4th to 6th examples.
 
-The last five examples are interesting. +Range#begin+ simply returns the
-begin-boundary value always. +Range#first+ returns the first "element" when no
-argument is given; +(Float::INFINITY..5)+ has the first element and so it is
+The last five examples are interesting. `Range#begin` simply returns the
+begin-boundary value always. `Range#first` returns the first "element" when no
+argument is given; `(Float::INFINITY..5)` has the first element and so it is
 returned. A beginless {Range} is a different story; it does not have a defined
-first element and hence +Range#first+ raises `RangeError`. By contrast, When
-an argument `n` is given to +Range#first+, an Array of `n` elements should be
+first element and hence `Range#first` raises `RangeError`. By contrast, When
+an argument `n` is given to `Range#first`, an Array of `n` elements should be
 returned.  Since counting from any Float is undefined, the Range from the
 negative infinity raises `TypeError`.  It makes sense?
 
-By the way, I note that +(5..8.6).last(2)+ is valid and returns +[7, 8]+ and
-+(2.2..8.6).size+ is also valid, to add confusion.
+By the way, I note that `(5..8.6).last(2)` is valid and returns `[7, 8]` and
+`(2.2..8.6).size` is also valid, to add confusion.
 
 Another point is, although the infinity has a clear mathematical definition,
 not all Ranges accept it. Let us consider your own subset class where each
@@ -268,140 +271,153 @@ is possible for users to distinguish them.
 ### Behaviours of endless and beginless Ranges
 
 The behaviours of the built-in Endless/Beginless Range can be a little
-confusing. In addition, it seems there are bugs for +Range#size+ ([Bug
-#18983](https://bugs.ruby-lang.org/issues/18983) and
+confusing. In addition, it seems there are bugs for `Range#size` ([Bug #18983](https://bugs.ruby-lang.org/issues/18983) and
     {Bug #18993}[https://bugs.ruby-lang.org/issues/18993])
 
 or at least points that contradict the specification described in the official
 doc, which adds confusion.
 
 In the Ruby implementation, the begin and end values of a beginless and
-endless Ranges are both interpreted as `nil`.  In Ruby, +nil == nil+ is true
+endless Ranges are both interpreted as `nil`.  In Ruby, `nil == nil` is true
 and therefore 
 
-    (?a..).end == (5..).end
+```ruby
+(?a..).end == (5..).end
+```
 
 is also `true`, whereas 
 
-    (?a..).end == (5..Float::INFINITY).end
+```ruby
+(?a..).end == (5..Float::INFINITY).end
+```
 
 is `false`.  Below is a more extended set of examples.
 
-    (-Float::INFINITY..Float::INFINITY).size  # => Infinity
-    ( Float::INFINITY..Float::INFINITY).size  # raises FloatDomainError
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true
-    num1.size              # => Infinity
-    num2.size              # => Infinity
+```ruby
+(-Float::INFINITY..Float::INFINITY).size  # => Infinity
+( Float::INFINITY..Float::INFINITY).size  # raises FloatDomainError
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true
+num1.size              # => Infinity
+num2.size              # => Infinity
 
-    str1 = (?a..)
-    str1.end != num1.end   # => true
-    str1.end == num2.end   # => true (because both are nil)
-    str1.size              # => nil  (because Range#size is defined for Numeric only)
-    (..?z).size            # => Infinity  (contradicting the specification?)
+str1 = (?a..)
+str1.end != num1.end   # => true
+str1.end == num2.end   # => true (because both are nil)
+str1.size              # => nil  (because Range#size is defined for Numeric only)
+(..?z).size            # => Infinity  (contradicting the specification?)
 
-    (..3).to_s    => "..3"
-    (3..).to_s    => "3.."
-    (3..nil).to_s => "3.."
-    (nil..3).to_s => "..3"
+(..3).to_s    => "..3"
+(3..).to_s    => "3.."
+(3..nil).to_s => "3.."
+(nil..3).to_s => "..3"
 
-    (nil..) == (..nil)   # => true
-    (nil..) != (...nil)  # => true  (because exclude_end? differ)
-    "abcdef"[..nil]      # => "abcdef" (i.e., it is interpreted as (0..IntegerInfinity)
-                         #    (n.b., nil.to_i==0; Integer(nil) #=> TypeError))
-    "abcdef"[..?a]       # raise: no implicit conversion of String into Integer (TypeError)
-    "abcdef"[0..100]     # => "abcdef"
-    "abcdef"[-100..100]  # => nil
+(nil..) == (..nil)   # => true
+(nil..) != (...nil)  # => true  (because exclude_end? differ)
+"abcdef"[..nil]      # => "abcdef" (i.e., it is interpreted as (0..IntegerInfinity)
+                     #    (n.b., nil.to_i==0; Integer(nil) #=> TypeError))
+"abcdef"[..?a]       # raise: no implicit conversion of String into Integer (TypeError)
+"abcdef"[0..100]     # => "abcdef"
+"abcdef"[-100..100]  # => nil
 
-    (..nil).size   # => Float::INFINITY
+(..nil).size   # => Float::INFINITY
 
-    (..nil).begin  # => nil
-    (..nil).first  # raise: cannot get the first element of beginless range (RangeError)
-    (..nil).last   # raise: cannot get the last element of endless range (RangeError)
-    (..nil).end    # => nil
+(..nil).begin  # => nil
+(..nil).first  # raise: cannot get the first element of beginless range (RangeError)
+(..nil).last   # raise: cannot get the last element of endless range (RangeError)
+(..nil).end    # => nil
 
-    (..nil).cover? 5    # => true
-    (..nil).cover? ?a   # => true
-    (..nil).cover? [?a] # => true
-    (..nil).cover? nil  # => true
+(..nil).cover? 5    # => true
+(..nil).cover? ?a   # => true
+(..nil).cover? [?a] # => true
+(..nil).cover? nil  # => true
+```
 
 For Integer,
 
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true (because (Float::INFINITY != nil))
-    num1.size              # => Float::INFINITY
-    num2.size              # => Float::INFINITY
+```ruby
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true (because (Float::INFINITY != nil))
+num1.size              # => Float::INFINITY
+num2.size              # => Float::INFINITY
 
-    (3...) == (3...nil)    # => true
-    (3..)  != (3...nil)    # => true  (because exclude_end? differ)
+(3...) == (3...nil)    # => true
+(3..)  != (3...nil)    # => true  (because exclude_end? differ)
 
-    (3..).size   # => Float::INFINITY
-    (..3).begin  # => nil
-    (..3).first  # raise: cannot get the first element of beginless range (RangeError)
-    (3..).last   # raise: cannot get the last element of endless range (RangeError)
-    (3..).end    # => nil
-    (..3).each{} # raise: `each': can't iterate from NilClass (TypeError)
-    (..3).to_a   # raise: `each': can't iterate from NilClass (TypeError)
-    (3..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
-    (3..Float::INFINITY).to_a  # Infinite loop!
+(3..).size   # => Float::INFINITY
+(..3).begin  # => nil
+(..3).first  # raise: cannot get the first element of beginless range (RangeError)
+(3..).last   # raise: cannot get the last element of endless range (RangeError)
+(3..).end    # => nil
+(..3).each{} # raise: `each': can't iterate from NilClass (TypeError)
+(..3).to_a   # raise: `each': can't iterate from NilClass (TypeError)
+(3..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
+(3..Float::INFINITY).to_a  # Infinite loop!
 
-    (-Float::INFINITY..4).first    # => -Float::INFINITY
-    (4..Float::INFINITY).last      # =>  Float::INFINITY
-    (-Float::INFINITY..4).first(2) # raise: can't iterate from Float (TypeError)
-    (4..Float::INFINITY).last(2)   # Infinite loop!
+(-Float::INFINITY..4).first    # => -Float::INFINITY
+(4..Float::INFINITY).last      # =>  Float::INFINITY
+(-Float::INFINITY..4).first(2) # raise: can't iterate from Float (TypeError)
+(4..Float::INFINITY).last(2)   # Infinite loop!
+```
 
 For String (or any user-defined class?),
 
-    (?a..).end   == (5..).end   # => true (because both are nil)
-    (?a..).end   != (5..Float::INFINITY).end      # => true
-    (..?a).begin == (..5).begin # => true (because both are nil)
-    (..?a).begin != ((-Float::INFINITY)..5).begin # => true
-    (..?a).size  # => Float::INFINITY
-    (?a..).size  # => nil
+```ruby
+(?a..).end   == (5..).end   # => true (because both are nil)
+(?a..).end   != (5..Float::INFINITY).end      # => true
+(..?a).begin == (..5).begin # => true (because both are nil)
+(..?a).begin != ((-Float::INFINITY)..5).begin # => true
+(..?a).size  # => Float::INFINITY
+(?a..).size  # => nil
 
-    (..?a).begin  # => nil
-    (..?a).first  # raise: cannot get the first element of beginless range (RangeError)
-    (?a..).last   # raise: cannot get the last element of endless range (RangeError)
-    (?a..).end    # => nil
-    (..?a).each{} # raise: `each': can't iterate from NilClass (TypeError)
-    (..?a).to_a   # raise: `each': can't iterate from NilClass (TypeError)
-    (?a..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
-    (?a..Float::INFINITY).to_a  # raise: bad value for range (ArgumentError)  # b/c it is not String!
+(..?a).begin  # => nil
+(..?a).first  # raise: cannot get the first element of beginless range (RangeError)
+(?a..).last   # raise: cannot get the last element of endless range (RangeError)
+(?a..).end    # => nil
+(..?a).each{} # raise: `each': can't iterate from NilClass (TypeError)
+(..?a).to_a   # raise: `each': can't iterate from NilClass (TypeError)
+(?a..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
+(?a..Float::INFINITY).to_a  # raise: bad value for range (ArgumentError)  # b/c it is not String!
+```
 
 ### Comment on Range#size
 
-The behaviour of +Range#size+ is highly confusing. According to [Official
-doc](https://ruby-doc.org/core-3.1.2/Range.html#method-i-size),
+The behaviour of `Range#size` is highly confusing. According to [Official doc](https://ruby-doc.org/core-3.1.2/Range.html#method-i-size),
 
-    Returns the count of elements in self if both begin and end values are numeric;
-    otherwise, returns nil
+```ruby
+Returns the count of elements in self if both begin and end values are numeric;
+otherwise, returns nil
+```
 
 But actually Ruby does not necessarily behaves in this way (see examples
 above). In addition, the meaning of "elements" in the doc for general Numeric
-is ambiguous. The following demonstrates it (reported as [Bug
-#18993](https://bugs.ruby-lang.org/issues/18993)):
+is ambiguous. The following demonstrates it (reported as [Bug #18993](https://bugs.ruby-lang.org/issues/18993)):
 
-    (5.quo(3)...5).size      # => 3
-    (5.quo(3).to_f...5).size # => 4
-    (5.quo(3)..5).size       # => 4
-    (5.quo(3).to_f..5).size  # => 4
+```ruby
+(5.quo(3)...5).size      # => 3
+(5.quo(3).to_f...5).size # => 4
+(5.quo(3)..5).size       # => 4
+(5.quo(3).to_f..5).size  # => 4
+```
 
 ### Comment on Range#count
 
-The behaviour of +Range#count+ is mostly understandable, but those of
+The behaviour of `Range#count` is mostly understandable, but those of
 borderless or with infinities are not trivial.
 
-    (5..).count             # => Float::INFINITY
-    (..5).count             # => Float::INFINITY
-    (..nil).count           # => Float::INFINITY
-    (-Float::INFINITY..nil) # => Float::INFINITY
-    (-Float::INFINITY..Float::INFINITY).count  # raises (TypeError) "can't iterate from Float"
-    (..5).count(4)          # raises (TypeError)
-    (..5).count{|i| i<3}    # raises (TypeError)
-    (1..).count(4)          # infinite loop!
-    (1..).count{|i| i<3}    # infinite loop!
+```ruby
+(5..).count             # => Float::INFINITY
+(..5).count             # => Float::INFINITY
+(..nil).count           # => Float::INFINITY
+(-Float::INFINITY..nil) # => Float::INFINITY
+(-Float::INFINITY..Float::INFINITY).count  # raises (TypeError) "can't iterate from Float"
+(..5).count(4)          # raises (TypeError)
+(..5).count{|i| i<3}    # raises (TypeError)
+(1..).count(4)          # infinite loop!
+(1..).count{|i| i<3}    # infinite loop!
+```
 
 Basically, in some limited cases, the method returns Infinity, which are
 special cases.
@@ -411,12 +427,16 @@ special case.
 
 ## Install
 
-    gem install range_extd
+```ruby
+gem install range_extd
+```
 
 installs several files including
 
-    range_extd.rb
-    range_extd/infinity.rb
+```ruby
+range_extd.rb
+range_extd/infinity.rb
+```
 
 in one of your `$LOAD_PATH` 
 
@@ -429,22 +449,28 @@ library directory.
 
 Then all you need to do is
 
-    require "range_extd/load_all"
+```ruby
+require "range_extd/load_all"
+```
 
 Or, if you only want minimum functions of this library, you can instead
 
-    require "range_extd"
+```ruby
+require "range_extd"
+```
 
 Basically, "`range_extd/load_all.rb`" is a wrapper Ruby file, which requires
 the following files:
 
-    require "range_extd"
-    require "range_extd/numeric"
-    require "range_extd/object"
-    require "range_extd/infinity"
-    require "range_extd/nowhere"
-    require "range_extd/range"
-    require "range_extd/nil_class"
+```ruby
+require "range_extd"
+require "range_extd/numeric"
+require "range_extd/object"
+require "range_extd/infinity"
+require "range_extd/nowhere"
+require "range_extd/range"
+require "range_extd/nil_class"
+```
 
 Among these, the first three files are independent, whereas the last four
 files are inseparable from the first one and are automatically require-d from
@@ -456,7 +482,7 @@ altered in the existing Ruby built-in classes: `Object` and `Numeric`
 (including `Float` and `Integer`). How they are modified are
 backward-compatible; simply a few new features are added.  Their use is highly
 recommended; otherwise, the use of this library would be very limited.  For
-example, the comparison operator +<=>+ would not be commutative without them,
+example, the comparison operator `<=>` would not be commutative without them,
 which might result in some nasty surprises.  For detail, refer to the
 individual references.
 
@@ -470,24 +496,28 @@ In the following, I assume all the files are required.
 
 Here are some simple examples.
 
-    require "range_extd/load_all"
-    r = RangeExtd(?a...?d, true)  # => a<...d
-    r.exclude_begin?              # => true 
-    r.to_a                        # => ["b", "c"]
-    RangeExtd(1...2)            == (1...2)          # => true
-    RangeExtd(1, 2, false, true)== (1...2)          # => true
-    RangeExtd(1, 1, false, false)==(1..1)           # => true
-    RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
-    RangeExtd(1, 1, false, true)  # => ArgumentError
-    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
-     == RangeExtd::ALL  # => true
+```ruby
+require "range_extd/load_all"
+r = RangeExtd(?a...?d, true)  # => a<...d
+r.exclude_begin?              # => true 
+r.to_a                        # => ["b", "c"]
+RangeExtd(1...2)            == (1...2)          # => true
+RangeExtd(1, 2, false, true)== (1...2)          # => true
+RangeExtd(1, 1, false, false)==(1..1)           # => true
+RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
+RangeExtd(1, 1, false, true)  # => ArgumentError
+(RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
+ == RangeExtd::ALL  # => true
+```
 
-`RangeExtd` provides three forms for initialisation (hint: the first form is
+`RangeExtd` provides three forms for initialization (hint: the first form is
 probably the handiest with least typing and is the easiest to remember):
 
-    RangeExtd(range, [exclude_begin=false, [exclude_end=false]])
-    RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
-    RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]])
+```ruby
+RangeExtd(range, [exclude_begin=false, [exclude_end=false]])
+RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]])
+RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]])
+```
 
 The two parameters in the square-brackets specify the respective boundaries to
 be excluded if true, or included if false (Default).  If they contradict the
@@ -504,30 +534,32 @@ visibly-recognisable way to specify any range with `exclude_begin=true`.
 
 ### Slightly more advanced uses
 
-    RangeExtd((0..), true).each do |i|
-      print i
-      break if i >= 9
-    end    # => self;  "123456789" => STDOUT
-           # *NOT* "012..."
-    (nil..nil).valid?  # => true
-    (1...1).valid?     # => false
-    (1...1).null?      # => true
-    RangeExtd.valid?(1...1)              # => false
-    RangeExtd(1, 1, true, true).valid?   # => true
-    RangeExtd(1, 1, true, true).empty?   # => true
-    RangeExtd(?a, ?b, true, true).to_a?  # => []
-    RangeExtd(?a, ?b, true, true).null?  # => true  (empty? is same in this case)
-    RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
-    RangeExtd(?a, ?e, true, true).null?  # => false
-    RangeExtd::NONE.is_none?             # => true
-    RangeExtd(1...1, true) == RangeExtd::NONE # => true
-    RangeExtd::ALL.is_all?               # => true
-    (nil..nil).is_all?                   # => false
-    (-Float::INFINITY..Float::INFINITY).is_all?    # => false
-    (nil..nil).equiv_all?                # => true
-    (-Float::INFINITY..Float::INFINITY).equiv_all? # => true
-    (3...7).equiv?(3..6)    # => true
-    (nil..nil).equiv?(RangeExtd::ALL)    # => true
+```ruby
+RangeExtd((0..), true).each do |i|
+  print i
+  break if i >= 9
+end    # => self;  "123456789" => STDOUT
+       # *NOT* "012..."
+(nil..nil).valid?  # => true
+(1...1).valid?     # => false
+(1...1).null?      # => true
+RangeExtd.valid?(1...1)              # => false
+RangeExtd(1, 1, true, true).valid?   # => true
+RangeExtd(1, 1, true, true).empty?   # => true
+RangeExtd(?a, ?b, true, true).to_a?  # => []
+RangeExtd(?a, ?b, true, true).null?  # => true  (empty? is same in this case)
+RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
+RangeExtd(?a, ?e, true, true).null?  # => false
+RangeExtd::NONE.is_none?             # => true
+RangeExtd(1...1, true) == RangeExtd::NONE # => true
+RangeExtd::ALL.is_all?               # => true
+(nil..nil).is_all?                   # => false
+(-Float::INFINITY..Float::INFINITY).is_all?    # => false
+(nil..nil).equiv_all?                # => true
+(-Float::INFINITY..Float::INFINITY).equiv_all? # => true
+(3...7).equiv?(3..6)    # => true
+(nil..nil).equiv?(RangeExtd::ALL)    # => true
+```
 
 All the methods that are in the built-in Range can be used in {RangeExtd},
 which is a child class of {Range}.
@@ -548,10 +580,9 @@ Note that whereas the changes in {Range} could be in principle separable from
 {RangeExtd}, if no one would likely want to use them separately, those in
 {NilClass} are unavoidable.  Without them, {RangeExtd::NONE} could not be
 defined, for `ArgumentError` (bad value for range) would be raised in the
-initialisation due to the way Ruby built-in Range is implemented.
+initialization due to the way Ruby built-in Range is implemented.
 
-See [discussion at
-Stackoverflow](https://stackoverflow.com/a/14449380/3577922).
+See [discussion at Stackoverflow](https://stackoverflow.com/a/14449380/3577922).
 
 ### RangeExtd::Infinity Class
 
@@ -561,12 +592,14 @@ Class {RangeExtd::Infinity} has only two constant instances.
 *   RangeExtd::Infinity::POSITIVE
 
 
-They are the objects that generalise the concept of `Float::INFINITY`  to any
+They are the objects that generalize the concept of `Float::INFINITY`  to any
 Comparable objects.  The methods `<=>` are defined.
 
 You can use them in the same way as other objects, such as,
 
-    (RangeExtd::Infinity::NEGATIVE.."k")
+```ruby
+(RangeExtd::Infinity::NEGATIVE.."k")
+```
 
 However, since they do not have any other methods, the use of them out of
 Range or its sub-classes is probably meaningless.
@@ -579,8 +612,7 @@ with those two constants, as long as the cmp method of the class is written in
 the **standard** way, that is, delegating the cmp method to the parent class,
 ultimately `Object`, when they encounter an object of a class they don't know.
 
-For more detail, see the document at [RubyGems
-webpage](http://rubygems.org/gems/range_extd), which is generated from the
+For more detail, see the document at [RubyGems webpage](http://rubygems.org/gems/range_extd), which is generated from the
 source-code annotation with YARD.
 
 ### RangeExtd::Nowhere Class
@@ -592,10 +624,13 @@ sole instance is available as
 
 
 This instance returns, for example, true for `nil?` and the same object-ID for
-`object_id` as `nil` and equal (+==+) to nil.  It is used to constitute
+`object_id` as `nil` and equal (`==`) to nil.  It is used to constitute
 {RangeExtd::NONE}.
 
 It is not, however, recognised as the false value in conditional statements.
+
+Also, a Range containing {RangeExtd::Nowhere::NOWHERE} is **not** "valid" as a
+Range (see below), except for {RangeExtd::NONE}.
 
 ### RangeExtd Class
 
@@ -625,7 +660,7 @@ it).
 *   `valid?` 
 *   `empty?` 
 *   `null?` 
-*   `is_none?` 
+*   `is_none?`
 *   `is_all?` 
 *   `equiv?` 
 
@@ -646,25 +681,27 @@ What is valid (`#valid?` => true) as a range is defined as follows.
     comparison results must be consistent between the two. The three
     exceptions are {RangeExtd::NONE} and Beginless and Endless Ranges
     (introduced in Ruby 2.7 and 2.6, respectively), which are all valid. 
-    Accordingly, +(nil..nil)+ is valid in {RangeExtd} Ver.2.0+ (nb., it used
+    Accordingly, `(nil..nil)` is valid in {RangeExtd} Ver.2.0+ (nb., it used
     to raise Exception in Ruby 1.8).
 2.  Except for {RangeExtd::NONE} and Beginless Range, the object of
-    +Range#begin+ must have the method +<=+. Therefore, some Endless Ranges
-    (Ruby 2.6 and later) like +(true..)+ are **not** valid. Note even "`true`"
-    has the method +<=>+ and hence checking +<=+ is essential.
-3.  Similarly, except for {RangeExtd::NONE} and Endless Range, +Range#end+
-    must have the method +<=+. Therefore, some Beginless Ranges (Ruby 2.7 and
-    later) like +(..true)+ are **not** valid.
+    `Range#begin` must have the method `<=`. Therefore, some Endless Ranges
+    (Ruby 2.6 and later) like `(true..)` are **not** valid. Note even "`true`"
+    has the method `<=>` and hence checking `<=` is essential.
+3.  Similarly, except for {RangeExtd::NONE} and Endless Range, `Range#end`
+    must have the method `<=`. Therefore, some Beginless Ranges (Ruby 2.7 and
+    later) like `(..true)` are **not** valid.
 4.  **begin** must be smaller than or equal (`==`) to **end**, that is,
     `(begin <=> end)` must be either -1 or 0.
 5.  If **begin** is equal to **end**, namely, `(begin <=> end) == 0`, the
     exclude status of the both ends must agree, except for the cases where
     both `begin` and `end` are `nil` (beginless and endless Range). In other
     words, if the `begin` is excluded, `end` must be also excluded, and vice
-    versa. For example, +(1...1)+ is NOT valid for this reason, because any
+    versa. For example, `(1...1)` is NOT valid for this reason, because any
     built-in Range object has the exclude status of `false` (namely,
-    inclusive) for `begin`, whereas +RangeExtd(1...1, true)+ is valid and
+    inclusive) for `begin`, whereas `RangeExtd(1...1, true)` is valid and
     equal (`==`) to {RangeExtd::NONE}.
+6.  Range containing {RangeExtd::Nowhere::NOWHERE} except for
+    {RangeExtd::NONE} is **not** valid.
 
 
 For more detail and examples, see the documents of {RangeExtd.valid?} and
@@ -712,26 +749,31 @@ specification and hence every parameter must agree. By contrast, `==` makes a
 more rough comparison and if the two objects are broadly the same, returns
 `true`.
 
-    RaE(0...0, true) == RaE(?a...?a, true)  # => false
-    RaE(0...1, true) == RaE(5...6, true)    # => true
+```ruby
+RaE(0...0, true) == RaE(?a...?a, true)  # => false
+RaE(0...1, true) == RaE(5...6, true)    # => true
+```
 
 ## Known bugs
 
-*   When {RangeExtd::Nowhere::NOWHERE} is used in a standard {Range},
-    +Range#minmax+ etc consider it as `nil`, which is conceptually not right.
-    Perhaps, {RangeExtd::Nowhere::NOWHERE} should be redefined as a non-nil
-    object?
+*   Although {RangeExtd::Nowhere::NOWHERE} cannot be used in the context of 
+    {RangeExtd} (because it is not {Range#valid?}), users could still use it
+    within just the built-in Range framework. Perhaps,
+    {RangeExtd::Nowhere::NOWHERE} should be redefined as a non-nil object?
 *   This library of Version 2+ does not work in Ruby 2.6 or earlier.
 *   This library of Version 1 does not work in Ruby 1.8 or earlier. For Ruby
     1.9.3 it is probably all right, though I have never tested it.
 *   Some unusual (rare) boundary conditions are found to vary from version to
-    version in Ruby, such as an implementation of +Hash#=>+. Though the test
+    version in Ruby, such as an implementation of `Hash#=>`. Though the test
     scripts are pretty extensive, they have not been performed over many
     different versions of Ruby. Hence, some features may not work well in some
     particular versions, although such cases should be very rare.
 *   {RangeExtd#hash} method does not theoretically guarantee to return a
     unique number for a {RangeExtd} object, though to encounter a hash number
     that is used elsewhere is extremely unlikely to happen in reality.
+*   `RangeExtd::NONE.inspect` and `RangeExtd::NONE.to_s` return
+    "Null<...Null", but it is displayed as "nil...nil" in Ruby `irb` and hence
+    it is not easily recognizable in `irb`.
 
 
 Extensive tests have been performed, as included in the package.
@@ -744,6 +786,11 @@ Extensive tests have been performed, as included in the package.
     `"abcde"[my_nil..]`, for it seems the String class makes a pretty rigorous
     check about `nil`.  So, I guess the practical applicability would not be
     improved so much, as far as the built-in Ruby classes are concerned.
+*   A method like "`similar`" may be useful. For example,
+    `(-Float::INFINITY..Float::INFINITY)` and
+    `(-Float::INFINITYnil...Float::INFINITY)` have no mathematical difference,
+    because excluding an infinity is meaningless. Indeed it makes no
+    difference in the results of operations with non-infinite Range/Rangeary.
 
 
 ## History memo
@@ -751,7 +798,7 @@ Extensive tests have been performed, as included in the package.
 *   `((?a..?z) === "cc")` would give false with Ruby 2.6.x or earlier, but
     true if later.
 *   `(Float::INFINITY..Float::INFINITY).size` used to return 0 (in Ruby-2.1 at
-    least) but raises +FloatDomainError: NaN+ as of Ruby-2.6 and later,
+    least) but raises `FloatDomainError: NaN` as of Ruby-2.6 and later,
     including Ruby 3. I do not know in which version the behaviour changed.
 
 
@@ -761,12 +808,12 @@ Extensive tests have been performed, as included in the package.
     Ver.2 from Ver.1 in order that their locations follow the Ruby Gems
     convention.
 *   Compatible with Beginless Range introduced in Ruby-2.7.
-*   +RangeExtd::Infinity#succ+ is now undefined, in line with Float.
+*   `RangeExtd::Infinity#succ` is now undefined, in line with Float.
 *   Extensions for `Object` and `Numeric` are not in default anymore and are
     optional.
-*   +RangeExtd#eql?+ follows the Ruby default behaviour (comparison based on
+*   `RangeExtd#eql?` follows the Ruby default behaviour (comparison based on
     [#hash]), eliminating special cases in comparison with {RangeExtd::NONE}.
-*   Fixed a bug where +RangeExtd#min_by+ (and `max_by` and `minmax_by`) did
+*   Fixed a bug where `RangeExtd#min_by` (and `max_by` and `minmax_by`) did
     not work correctly.
 
 
@@ -775,27 +822,30 @@ Extensive tests have been performed, as included in the package.
 As of Ver.1.1, the `RangeExtd::Infinity` class instances are not comparable
 with `Float::INFINITY`; for example,
 
-    RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
+```ruby
+RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
+```
 
-Conceptionally, the former is a generalised object of the latter and hence
+Conceptionally, the former is a generalized object of the latter and hence
 they should not be **equal**.  See the reference of {RangeExtd::Infinity} for
 detail.  Note, the behaviour of Endless Range from Ruby 2.6 may feel a little
 odd, as follows:
 
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true
-    num1.size              # => Infinity
-    num2.size              # => Infinity
+```ruby
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true
+num1.size              # => Infinity
+num2.size              # => Infinity
 
-    str1 = (?a..)
-    str1.end == num2.end   # => true (because both are nil)
-    str1.size              # => nil
+str1 = (?a..)
+str1.end == num2.end   # => true (because both are nil)
+str1.size              # => nil
+```
 
 ### RangeExtd Ver.1.0
 
-`RangeExtd::Infinity::POSITIVE` is practically the same as [Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+`RangeExtd::Infinity::POSITIVE` is practically the same as [Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 introduced in Ruby 2.6 released in 2018 December!!  In other words, the
 official Ruby has finally implement a part of this library! However,
 `RangeExtd::Infinity::NEGATIVE` was not yet implemented (at the time) in the
@@ -832,19 +882,20 @@ incompleteness, that is, the current behaviour of Range!
 
 Enjoy.
 
-## Miscellaneous
-
 ## Copyright etc
 
-Author
-:   Masa Sakano < info a_t wisebabel dot com >
-License
-:   MIT.
-Warranty
-:   No warranty whatsoever.
-Versions
-:   The versions of this package follow Semantic Versioning (2.0.0)
-    http://semver.org/
+<dl>
+<dt>Author</dt>
+<dd>   Masa Sakano &lt; info a_t wisebabel dot com &gt;</dd>
+<dt>License</dt>
+<dd>   MIT.</dd>
+<dt>Warranty</dt>
+<dd>   No warranty whatsoever.</dd>
+<dt>Versions</dt>
+<dd>   The versions of this package follow Semantic Versioning (2.0.0)
+    http://semver.org/</dd>
+</dl>
+
 
 
 ---
@@ -868,9 +919,9 @@ Versions
 このライブラリの最大の利点は、FloatやRationalのような数で応用場面の多 い複数レンジの論理演算が可能になったことです。 Gem
 [Rangeary](https://rubygems.org/gems/rangeary) は本ライブラリをフ
 ルに用いて、レンジの論理演算の概念を実現しています。そのためには、無限 に開いた可能性がありまた始端と終端のいずれもが除外されている可能性がある
-レンジの概念が不可欠でした。たとえば、 レンジ +(?a..?d)+ の否定(あるいは補集合)が2つのレンジ
-+(-"Infinity-Character"...3)+ と +(?d(exclusive).."Infinity-Character")+
-であり、その否定が元の +(?a..?d)+ になります。このような演算は、本 `RangeExtd` クラスを用いる ことで初めて可能になります。
+レンジの概念が不可欠でした。たとえば、 レンジ `(?a..?d)` の否定(あるいは補集合)が2つのレンジ
+`(-"Infinity-Character"...3)` と `(?d(exclusive).."Infinity-Character")`
+であり、その否定が元の `(?a..?d)` になります。このような演算は、本 `RangeExtd` クラスを用いる ことで初めて可能になります。
 
 Rangeary: {https://rubygems.org/gems/rangeary}
 
@@ -891,7 +942,7 @@ Integer や String)。この状況 が厳密な定義をする時の混乱に拍
 
 ### Rangeの正当性
 
-Rubyの組込みRangeは、メンバーに許されるものに対してとても慣用です。た とえば、+(true...true)+
+Rubyの組込みRangeは、メンバーに許されるものに対してとても慣用です。た とえば、`(true...true)`
 は、それが何を意味するのかはともかく、完全に正 当なRangeです。もっとも、イテレーターを伴う`each`や`to_a` といったメソッ
 ドを使おうとすると例外(`TypeError`)が発生ますし、利用価値はごく限られ るでしょうが。
 
@@ -903,8 +954,10 @@ Rubyの組込みRangeは、メンバーに許されるものに対してとて�
 要素3は始端では含まれるのに終端では除外されているため、相互に矛盾してい るからです。このRangeExtd クラスでは、次の2つが正当なレンジと見做され
 ます。
 
-    * RangeExtd.new(3, 3, true,  true)   # => an empty range
-    * RangeExtd.new(3, 3, false, false)  # => a single-point range (3..3)
+```ruby
+* RangeExtd.new(3, 3, true,  true)   # => an empty range
+* RangeExtd.new(3, 3, false, false)  # => a single-point range (3..3)
+```
 
 ただし、もし組込みRangeに閉じて使う限りは、何も変わりません。つまり、 標準Rubyと完全に互換性を保っています。
 
@@ -924,17 +977,21 @@ Ruby 2.6 と 2.7 でそれぞれ終端および始端のないRangeが導入さ�
 
 これらは基本的に `Float::INFINITY` を全ての Comparable であるオブジェクトに*一般化*したものです。たとえば、
 
-    ("a"..RangeExtd::Infinity::POSITIVE).each
+```ruby
+("a"..RangeExtd::Infinity::POSITIVE).each
+```
 
 は、"a"から始まる `String#succ` を使った無限のイテレーターを与えます (だから、どこかで必ず
 breakするようにコードを書きましょう!)。 この例の場合、Ruby-2.6以上の以下とまったく同じように動きます。
 
-    ("a"..).each
+```ruby
+("a"..).each
+```
 
 ### News: Libraryの場所他
 
 **重要**: ライブラリのパスが{RangeExtd} Ver.1 から Ver.2 で、 ディレクトリの階層一つ上がりました。これは、Ruby
-Gemの慣用にそうように するためです。端的には、標準的方法は、+require "range_extd"+ です。
+Gemの慣用にそうように するためです。端的には、標準的方法は、`require "range_extd"` です。
 以前のパスは、"range_extd/range_extd" でした。
 
 それに伴い、{RangeExtd} のバージョンを2.0にあげました。
@@ -943,18 +1000,17 @@ Gemの慣用にそうように するためです。端的には、標準的方�
 
 #### News: Beginless Range サポートしました
 
-Ruby 2.7 で始端のない [Beginless
-range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
+Ruby 2.7 で始端のない [Beginless range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 がサポートされました。 `RangeExtd` も今やサポートします。この影響で、仕様に重要な変更があります。
 
 まず、{RangeExtd::NONE} は、事実上
-+RangeExtd((RangeExtd::Nowhere::NOWHERE...RangeExtd::Nowhere::NOWHERE), true)+
+`RangeExtd((RangeExtd::Nowhere::NOWHERE...RangeExtd::Nowhere::NOWHERE), true)`
 になりました。すなわち、両端が {RangeExtd::Nowhere::NOWHERE} であり、 両端({RangeExtd#begin} と
 {RangeExtd#end})とも除外されています。 以前のバージョンでは、{RangeExtd::NONE} の両端は `nil` でした。 Range
-+(nil..nil)+ は、Ruby-2.6 およびそれ以前ではそもそも許されていな
+`(nil..nil)` は、Ruby-2.6 およびそれ以前ではそもそも許されていな
 くて、そのために{RangeExtd::NONE}に独特な表記として幸便だったものです。 しかし、Ruby-2.7 以降では nil から nil
-のRangeが許容されます。つまり、 +(nil..nil)+ は完全に正当であり、それは {RangeExtd::NONE} を表していた
-+RangeExtd((nil...nil), true)+ と事実上同じになってしまいます。前者は、
+のRangeが許容されます。つまり、 `(nil..nil)` は完全に正当であり、それは {RangeExtd::NONE} を表していた
+`RangeExtd((nil...nil), true)` と事実上同じになってしまいます。前者は、
 後者とはまったく異なるオブジェクトであり、(除外フラグをのぞけば)むしろ {RangeExtd::ALL}
 に極めて近いにも拘らずです。だから、変更が必要になったのです。
 
@@ -963,36 +1019,35 @@ range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 {RangeExtd} Ver.1以前でその値はまさに `nil` だったことを考えれば、
 Ver.2で{RangeExtd::Nowhere::NOWHERE} が{RangeExtd::NONE}
 に使われるようになったと言っても、今まで動いていたコードには何の変更も必要ないはずです。 オブジェクトが{RangeExtd::NONE}
-かどうかをチェックする推奨方法は、 今までもずっとそうだったように、{RangeExtd#is_none?} です。実用的には、 {Range#null?}
-がユーザーが希望する挙動であることが大半でしょう (注: +(true..true).null?+ は偽(`false`)を返すことに注意。
-本マニュアルの「詳説」章の「RangeExtd Class」を参照)。
+かどうかをチェックする推奨方法は、 今までもずっとそうだったように、{RangeExtd#is_none?} です
+(`Enumerable#none?`とは異なるのでご注意)。実用的には、 {Range#null?} がユーザーが希望する挙動であることが大半でしょう
+(注: `(true..true).null?` は偽(`false`)を返すことに注意。 本マニュアルの「詳説」章の「RangeExtd
+Class」を参照)。
 
-次に、+RangeExtd.valid?(nil..)+ は、真(`true`)を返すようになりました。 以前は、偽を返していました。そしてそれは
+次に、`RangeExtd.valid?(nil..)` は、真(`true`)を返すようになりました。 以前は、偽を返していました。そしてそれは
 {RangeExtd::ALL} に等しいです。
 
-[たとえば、+"abc"](nil..)+ は以前のバージョンでは不正もしくは文法エラー
+[たとえば、`"abc"](nil..)` は以前のバージョンでは不正もしくは文法エラー
 さえ出ていましたが、Ruby-2.7以降では完全に正当なRuby表現です。 したがって、もし仮に`RangeExtd`
 がそれらを正当でないと見做したならば、 不自然に受け取られるでしょう。
 
-+RangeExtd.valid?(true..)+ は、依然 `false` を返します。
+`RangeExtd.valid?(true..)` は、依然 `false` を返します。
 
 他の大きな変更には以下があります。
 
-*   +RangeExtd::Infinity#succ+ はFloatクラスに合わせて未定義になりました。
+*   `RangeExtd::Infinity#succ` はFloatクラスに合わせて未定義になりました。
 *   `Object` と `Numeric` クラスの拡張はデフォルトではなく、オプション(ユーザーの選択)となりました。
-*   +RangeExtd#eql?+
+*   `RangeExtd#eql?`
     [はRubyの標準(](#hash)値を比較)にそうようにし、今まであった{RangeExtd::NONE}との特別な比較ルーチンを削除しました。
-*   +RangeExtd#min_by+ (`max_by` と `minmax_by`) のバグを修正しました。
+*   `RangeExtd#min_by` (`max_by` と `minmax_by`) のバグを修正しました。
 
 
 #### News: Endless Range サポートしました
 
-2019年10月より、本パッケージは、Ruby 2.6 で導入された [Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+2019年10月より、本パッケージは、Ruby 2.6 で導入された [Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 (終端のない Range)を正式サポートしました。よって、Version 1.0 をリリースしました!
 
-Ruby 2.7 では、[Beginless
-range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
+Ruby 2.7 では、[Beginless range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 が導入されました.
 
 #### 注: Rangesmallerとの関係
@@ -1005,10 +1060,8 @@ range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 
 ### Endless Range と Beginless Range
 
-[Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
-(終端のないRange)と [Beginless
-Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
+[Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+(終端のないRange)と [Beginless Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 (始端のないRange)はそれぞれ 2018年12月および2019年12月リリースの Ruby 2.6 と 2.7 で導入されました。
 
 そのおかげで、Rubyの組込み`Range` は、`RangeExtd` が提供していた機能の いくつかを持つようになりました。
@@ -1022,30 +1075,32 @@ Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 この違いは微妙ながら、はっきりとした意味があります。 以下に、標準Rubyの特にNumericのRangeを例示します。というのも、Numeric
 はこの両方を提供しているために、違いがわかりやすいのです。
 
-    "abcdef"[..2]   # => "abc"
-    "abcdef"[..2.0] # => "abc"
-    "abcdef"[(-Float::INFINITY)..2]  # raise (RangeError)
-    "abcdef"[(-1)..2] # => ""
-    "abcdef"[(-6)..2] # => "abc"
-    "abcdef"[(-7)..2] # => nil
-    (-Float::INFINITY..5).first(1) # raise: can't iterate from Float (TypeError)
-    (-Float::INFINITY..5).first    # => -Infinity
-    (-Float::INFINITY..5).begin    # => -Infinity
-    (..5).first   # raise: cannot get the first element of beginless range (RangeError)
-    (..5).begin   # => nil
+```ruby
+"abcdef"[..2]   # => "abc"
+"abcdef"[..2.0] # => "abc"
+"abcdef"[(-Float::INFINITY)..2]  # raise (RangeError)
+"abcdef"[(-1)..2] # => ""
+"abcdef"[(-6)..2] # => "abc"
+"abcdef"[(-7)..2] # => nil
+(-Float::INFINITY..5).first(1) # raise: can't iterate from Float (TypeError)
+(-Float::INFINITY..5).first    # => -Infinity
+(-Float::INFINITY..5).begin    # => -Infinity
+(..5).first   # raise: cannot get the first element of beginless range (RangeError)
+(..5).begin   # => nil
+```
 
 最初、そして2番目の式に出てくるのが始端のないRangeで、始端が未定義です。 Stringクラスは、その「始点の値」を0だと*解釈*しています。
 対照的に、3番目の式では、例外が発生しています。この仕様は、 始点の値が定義されていて、でも負の無限大だから、と考えれば、理解できます。
 実際、Stringの場合、負の数の添字は、(4番目、6番目の例にあるように) 特別な意味を持っていますからね。
 
-最後の5つの例は、興味深いです。 +Range#begin+ は単純に始点の値を返します。 +Range#first+
-は引数が与えられなければ、最初の「要素」を返します。 +(Float::INFINITY..5)+ には最初の要素があるため、それが返されます。
-しかしbeginless {Range} では話が異なります。定義された最初の要素がないため、 +Range#first+ は、`RangeError`
-例外を発生させます。対照的に、 引数 `n` が +Range#first+ に与えられた時は、`n`個の要素を持つ配列
+最後の5つの例は、興味深いです。 `Range#begin` は単純に始点の値を返します。 `Range#first`
+は引数が与えられなければ、最初の「要素」を返します。 `(Float::INFINITY..5)` には最初の要素があるため、それが返されます。
+しかしbeginless {Range} では話が異なります。定義された最初の要素がないため、 `Range#first` は、`RangeError`
+例外を発生させます。対照的に、 引数 `n` が `Range#first` に与えられた時は、`n`個の要素を持つ配列
 (Array)が返されなければなりません。Floatから値を数えるのは未定義であるため、 負の無限大からのRangeの場合は、`TypeError`
 例外が発生します。 筋が通っていると思いませんか?
 
-ところで、補足すると、+(5..8.6).last(2)+ は正当であって配列 +[7, 8]+ を返します。また、+(2.2..8.6).size+
+ところで、補足すると、`(5..8.6).last(2)` は正当であって配列 `[7, 8]` を返します。また、`(2.2..8.6).size`
 も(なぜか?)正当です。混乱しますね……。
 
 別のポイントとして、無限大には明快な数学的定義がありますが、 すべてのRangeがそれを認めるわけではありません。たとえば、
@@ -1066,136 +1121,150 @@ Range](https://rubyreferences.github.io/rubychanges/2.7.html#beginless-range)
 
 ### endless and beginless Rangesの振舞い
 
-組込み Endless/Beginless Range の振舞いは幾分混乱するところがあります。 加えて、+Range#size+にはバグが複数あるようです
+組込み Endless/Beginless Range の振舞いは幾分混乱するところがあります。 加えて、`Range#size`にはバグが複数あるようです
 ([Bug #18983](https://bugs.ruby-lang.org/issues/18983) と
     {Bug #18993}[https://bugs.ruby-lang.org/issues/18993])。
 
 少なくとも、公式マニュアルに記載されている仕様とは矛盾する振舞いがあり、 混乱に拍車をかけます。
 
-Rubyの実装では、beginless/endless Rangesの始端と終端の値は、 `nil` と解釈されます。 Rubyでは +nil ==
-nil+ が真であるために、
+Rubyの実装では、beginless/endless Rangesの始端と終端の値は、 `nil` と解釈されます。 Rubyでは `nil == nil` が真であるために、
 
-    (?a..).end == (5..).end
+```ruby
+(?a..).end == (5..).end
+```
 
 も真です。一方、
 
-    (?a..).end == (5..Float::INFINITY).end
+```ruby
+(?a..).end == (5..Float::INFINITY).end
+```
 
 は偽(`false`)です。以下が幅広い例です。
 
-    (-Float::INFINITY..Float::INFINITY).size  # => Infinity
-    ( Float::INFINITY..Float::INFINITY).size  # raises FloatDomainError
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true
-    num1.size              # => Infinity
-    num2.size              # => Infinity
+```ruby
+(-Float::INFINITY..Float::INFINITY).size  # => Infinity
+( Float::INFINITY..Float::INFINITY).size  # raises FloatDomainError
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true
+num1.size              # => Infinity
+num2.size              # => Infinity
 
-    str1 = (?a..)
-    str1.end != num1.end   # => true
-    str1.end == num2.end   # => true (because both are nil)
-    str1.size              # => nil  (because Range#size is defined for Numeric only)
-    (..?z).size            # => Infinity  (contradicting the specificatin?)
+str1 = (?a..)
+str1.end != num1.end   # => true
+str1.end == num2.end   # => true (because both are nil)
+str1.size              # => nil  (because Range#size is defined for Numeric only)
+(..?z).size            # => Infinity  (contradicting the specificatin?)
 
-    (..3).to_s    => "..3"
-    (3..).to_s    => "3.."
-    (3..nil).to_s => "3.."
-    (nil..3).to_s => "..3"
+(..3).to_s    => "..3"
+(3..).to_s    => "3.."
+(3..nil).to_s => "3.."
+(nil..3).to_s => "..3"
 
-    (nil..) == (..nil)   # => true
-    (nil..) != (...nil)  # => true  (because exclude_end? differ)
-    "abcdef"[..nil]      # => "abcdef" (i.e., it is interpreted as (0..IntegerInfinity)
-                         #    (n.b., nil.to_i==0; Integer(nil) #=> TypeError))
-    "abcdef"[..?a]       # raise: no implicit conversion of String into Integer (TypeError)
-    "abcdef"[0..100]     # => "abcdef"
-    "abcdef"[-100..100]  # => nil
+(nil..) == (..nil)   # => true
+(nil..) != (...nil)  # => true  (because exclude_end? differ)
+"abcdef"[..nil]      # => "abcdef" (i.e., it is interpreted as (0..IntegerInfinity)
+                     #    (n.b., nil.to_i==0; Integer(nil) #=> TypeError))
+"abcdef"[..?a]       # raise: no implicit conversion of String into Integer (TypeError)
+"abcdef"[0..100]     # => "abcdef"
+"abcdef"[-100..100]  # => nil
 
-    (..nil).size   # => Float::INFINITY
+(..nil).size   # => Float::INFINITY
 
-    (..nil).begin  # => nil
-    (..nil).first  # raise: cannot get the first element of beginless range (RangeError)
-    (..nil).last   # raise: cannot get the last element of endless range (RangeError)
-    (..nil).end    # => nil
+(..nil).begin  # => nil
+(..nil).first  # raise: cannot get the first element of beginless range (RangeError)
+(..nil).last   # raise: cannot get the last element of endless range (RangeError)
+(..nil).end    # => nil
 
-    (..nil).cover? 5    # => true
-    (..nil).cover? ?a   # => true
-    (..nil).cover? [?a] # => true
-    (..nil).cover? nil  # => true
+(..nil).cover? 5    # => true
+(..nil).cover? ?a   # => true
+(..nil).cover? [?a] # => true
+(..nil).cover? nil  # => true
+```
 
 Integerクラスならば、
 
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true (because (Float::INFINITY != nil))
-    num1.size              # => Float::INFINITY
-    num2.size              # => Float::INFINITY
+```ruby
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true (because (Float::INFINITY != nil))
+num1.size              # => Float::INFINITY
+num2.size              # => Float::INFINITY
 
-    (3...) == (3...nil)    # => true
-    (3..)  != (3...nil)    # => true  (because exclude_end? differ)
+(3...) == (3...nil)    # => true
+(3..)  != (3...nil)    # => true  (because exclude_end? differ)
 
-    (3..).size   # => Float::INFINITY
-    (..3).begin  # => nil
-    (..3).first  # raise: cannot get the first element of beginless range (RangeError)
-    (3..).last   # raise: cannot get the last element of endless range (RangeError)
-    (3..).end    # => nil
-    (..3).each{} # raise: `each': can't iterate from NilClass (TypeError)
-    (..3).to_a   # raise: `each': can't iterate from NilClass (TypeError)
-    (3..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
-    (3..Float::INFINITY).to_a  # Infinite loop!
+(3..).size   # => Float::INFINITY
+(..3).begin  # => nil
+(..3).first  # raise: cannot get the first element of beginless range (RangeError)
+(3..).last   # raise: cannot get the last element of endless range (RangeError)
+(3..).end    # => nil
+(..3).each{} # raise: `each': can't iterate from NilClass (TypeError)
+(..3).to_a   # raise: `each': can't iterate from NilClass (TypeError)
+(3..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
+(3..Float::INFINITY).to_a  # Infinite loop!
 
-    (-Float::INFINITY..4).first    # => -Float::INFINITY
-    (4..Float::INFINITY).last      # =>  Float::INFINITY
-    (-Float::INFINITY..4).first(2) # raise: can't iterate from Float (TypeError)
-    (4..Float::INFINITY).last(2)   # Infinite loop!
+(-Float::INFINITY..4).first    # => -Float::INFINITY
+(4..Float::INFINITY).last      # =>  Float::INFINITY
+(-Float::INFINITY..4).first(2) # raise: can't iterate from Float (TypeError)
+(4..Float::INFINITY).last(2)   # Infinite loop!
+```
 
 Stringクラス(あるいはユーザー定義クラス?)ならば、
 
-    (?a..).end   == (5..).end   # => true (because both are nil)
-    (?a..).end   != (5..Float::INFINITY).end      # => true
-    (..?a).begin == (..5).begin # => true (because both are nil)
-    (..?a).begin != ((-Float::INFINITY)..5).begin # => true
-    (..?a).size  # => Float::INFINITY
-    (?a..).size  # => nil
+```ruby
+(?a..).end   == (5..).end   # => true (because both are nil)
+(?a..).end   != (5..Float::INFINITY).end      # => true
+(..?a).begin == (..5).begin # => true (because both are nil)
+(..?a).begin != ((-Float::INFINITY)..5).begin # => true
+(..?a).size  # => Float::INFINITY
+(?a..).size  # => nil
 
-    (..?a).begin  # => nil
-    (..?a).first  # raise: cannot get the first element of beginless range (RangeError)
-    (?a..).last   # raise: cannot get the last element of endless range (RangeError)
-    (?a..).end    # => nil
-    (..?a).each{} # raise: `each': can't iterate from NilClass (TypeError)
-    (..?a).to_a   # raise: `each': can't iterate from NilClass (TypeError)
-    (?a..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
-    (?a..Float::INFINITY).to_a  # raise: bad value for range (ArgumentError)  # b/c it is not String!
+(..?a).begin  # => nil
+(..?a).first  # raise: cannot get the first element of beginless range (RangeError)
+(?a..).last   # raise: cannot get the last element of endless range (RangeError)
+(?a..).end    # => nil
+(..?a).each{} # raise: `each': can't iterate from NilClass (TypeError)
+(..?a).to_a   # raise: `each': can't iterate from NilClass (TypeError)
+(?a..).to_a   # raise: `to_a': cannot convert endless range to an array (RangeError)
+(?a..Float::INFINITY).to_a  # raise: bad value for range (ArgumentError)  # b/c it is not String!
+```
 
 ### Range#size についての注記
 
-+Range#size+ の振舞いはとてもわかりにくいです。
+`Range#size` の振舞いはとてもわかりにくいです。
 [公式マニュアル](https://ruby-doc.org/core-3.1.2/Range.html#method-i-size) によれば、
 
-    Returns the count of elements in self if both begin and end values are numeric;
-    otherwise, returns nil
+```ruby
+Returns the count of elements in self if both begin and end values are numeric;
+otherwise, returns nil
+```
 
 しかし、実際のRubyの挙動は必ずしもこの通りではありません(上述の例参照)。 加えて、一般のNumeric
-に対して"elements"が一体何かは不明瞭です。 だから、Stringならば必ずnilが買える 以下が一例です([Bug
-#18993](https://bugs.ruby-lang.org/issues/18993) として報告済):
+に対して"elements"が一体何かは不明瞭です。 だから、Stringならば必ずnilが買える 以下が一例です([Bug #18993](https://bugs.ruby-lang.org/issues/18993) として報告済):
 
-    (5.quo(3)...5).size      # => 3
-    (5.quo(3).to_f...5).size # => 4
-    (5.quo(3)..5).size       # => 4
-    (5.quo(3).to_f..5).size  # => 4
+```ruby
+(5.quo(3)...5).size      # => 3
+(5.quo(3).to_f...5).size # => 4
+(5.quo(3)..5).size       # => 4
+(5.quo(3).to_f..5).size  # => 4
+```
 
 ### Range#count についての注記
 
-+Range#count+ の振舞いの大半は理解できます。しかし、 境界のないものや無限大関係は自明ではありません。
+`Range#count` の振舞いの大半は理解できます。しかし、 境界のないものや無限大関係は自明ではありません。
 
-    (5..).count             # => Float::INFINITY
-    (..5).count             # => Float::INFINITY
-    (..nil).count           # => Float::INFINITY
-    (-Float::INFINITY..nil) # => Float::INFINITY
-    (-Float::INFINITY..Float::INFINITY).count  # raises (TypeError) "can't iterate from Float"
-    (..5).count(4)          # raises (TypeError)
-    (..5).count{|i| i<3}    # raises (TypeError)
-    (1..).count(4)          # infinite loop!
-    (1..).count{|i| i<3}    # infinite loop!
+```ruby
+(5..).count             # => Float::INFINITY
+(..5).count             # => Float::INFINITY
+(..nil).count           # => Float::INFINITY
+(-Float::INFINITY..nil) # => Float::INFINITY
+(-Float::INFINITY..Float::INFINITY).count  # raises (TypeError) "can't iterate from Float"
+(..5).count(4)          # raises (TypeError)
+(..5).count{|i| i<3}    # raises (TypeError)
+(1..).count(4)          # infinite loop!
+(1..).count{|i| i<3}    # infinite loop!
+```
 
 端的には、一部の特別なケースについては、同メソッドは Infinity (無限大)を返します。
 
@@ -1204,12 +1273,16 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 ## インストール
 
-    gem install range_extd
+```ruby
+gem install range_extd
+```
 
 により、
 
-    range_extd.rb
-    range_extd/infinity.rb
+```ruby
+range_extd.rb
+range_extd/infinity.rb
+```
 
 をはじめとした数個のファイルが`$LOAD_PATH` の一カ所にインストールされるはずです。
 
@@ -1217,28 +1290,34 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 後は、Ruby のコード(又は irb)から
 
-    require "range_extd/load_all"
+```ruby
+require "range_extd/load_all"
+```
 
 とするだけです。もしくは、本ライブラリのの最小限セットだけ使う場合は、
 
-    require "range_extd"
+```ruby
+require "range_extd"
+```
 
 でもいいです。 端的には "`range_extd/load_all.rb`" は、ラッパーであり、以下のファイルを読み込みます:
 
-    require "range_extd"
-    require "range_extd/numeric"
-    require "range_extd/object"
-    require "range_extd/infinity"
-    require "range_extd/nowhere"
-    require "range_extd/range"
-    require "range_extd/nil_class"
+```ruby
+require "range_extd"
+require "range_extd/numeric"
+require "range_extd/object"
+require "range_extd/infinity"
+require "range_extd/nowhere"
+require "range_extd/range"
+require "range_extd/nil_class"
+```
 
 このうち、最初の3つは独立で、下の4つは一番上のファイルと必ず一緒に使われるもので、最初のファイルを読めば自動的に読み込まれます。
 
 2番目と3番目のファイルは、ユーティリティライブラリです。読み込めば、 Ruby組込みクラスの `Object` と `Numeric` (`Float`
 と `Integer`を含む) にいくつかのメソッドが追加されたり機能が追加されます。
 追加された機能はすべて後方互換であり、単に既存のクラスに機能を追加するだけです。 これらの読み込みを強く推奨します。もし読み込まない場合は、本ライブラリ
-のパワーがごく限られてしまいます。たとえば、比較演算子+<=>+ が可換でないため、驚くような挙動になることがあるでしょう。
+のパワーがごく限られてしまいます。たとえば、比較演算子`<=>` が可換でないため、驚くような挙動になることがあるでしょう。
 具体的な追加機能はそれぞれのマニュアルを参照ください。
 
 ## 単純な使用例
@@ -1249,23 +1328,27 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 以下に幾つかの基本的な使用例を列挙します。
 
-    require "range_extd/load_all"
-    r = RangeExtd(?a...?d, true)  # => a<...d
-    r.exclude_begin?              # => true 
-    r.to_a                        # => ["b", "c"]
-    RangeExtd(1...2)            == (1...2)          # => true
-    RangeExtd(1, 2, false, true)== (1...2)          # => true
-    RangeExtd(1, 1, false, false)==(1..1)           # => true
-    RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
-    RangeExtd(1, 1, false, true)  # => ArgumentError
-    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
-     == RangeExtd::ALL  # => true
+```ruby
+require "range_extd/load_all"
+r = RangeExtd(?a...?d, true)  # => a<...d
+r.exclude_begin?              # => true 
+r.to_a                        # => ["b", "c"]
+RangeExtd(1...2)            == (1...2)          # => true
+RangeExtd(1, 2, false, true)== (1...2)          # => true
+RangeExtd(1, 1, false, false)==(1..1)           # => true
+RangeExtd(1, 1, true, true) == RangeExtd::NONE  # => true
+RangeExtd(1, 1, false, true)  # => ArgumentError
+(RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
+ == RangeExtd::ALL  # => true
+```
 
 `RangeExtd` のインスタンスを作成する方法が3通りあります(おそらく 最初のやり方が最も単純でタイプ量が少なく、かつ覚えやすいでしょう)。
 
-    RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
-    RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
-    RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+```ruby
+RangeExtd(range, [exclude_begin=false, [exclude_end=false]], opts)
+RangeExtd(obj_begin, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+RangeExtd(obj_begin, string_form, obj_end, [exclude_begin=false, [exclude_end=false]], opts)
+```
 
 大括弧の中の二つのパラメーターが、それぞれ始点と終点とを除外する(true)、または含む
 (false)を指示します。もし、その二つのパラメーターが最初のパラメーターのレンジ (`Range` または `RangeExtd`)
@@ -1278,30 +1361,32 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 ### 少し上級編
 
-    RangeExtd((0..), true).each do |i|
-      print i
-      break if i >= 9
-    end    # => self;  "123456789" => STDOUT
-           # *NOT* "012..."
-    (nil..nil).valid?  # => true
-    (1...1).valid?     # => false
-    (1...1).null?      # => true
-    RangeExtd.valid?(1...1)              # => false
-    RangeExtd(1, 1, true, true).valid?   # => true
-    RangeExtd(1, 1, true, true).empty?   # => true
-    RangeExtd(?a, ?b, true, true).to_a?  # => []
-    RangeExtd(?a, ?b, true, true).null?  # => true  (empty? is same in this case)
-    RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
-    RangeExtd(?a, ?e, true, true).null?  # => false
-    RangeExtd::NONE.is_none?             # => true
-    RangeExtd(1...1, true) == RangeExtd::NONE # => true
-    RangeExtd::ALL.is_all?               # => true
-    (nil..nil).is_all?                   # => false
-    (-Float::INFINITY..Float::INFINITY).is_all?    # => false
-    (nil..nil).equiv_all?                # => true
-    (-Float::INFINITY..Float::INFINITY).equiv_all? # => true
-    (3...7).equiv?(3..6)    # => true
-    (nil..nil).equiv?(RangeExtd::ALL)    # => true
+```ruby
+RangeExtd((0..), true).each do |i|
+  print i
+  break if i >= 9
+end    # => self;  "123456789" => STDOUT
+       # *NOT* "012..."
+(nil..nil).valid?  # => true
+(1...1).valid?     # => false
+(1...1).null?      # => true
+RangeExtd.valid?(1...1)              # => false
+RangeExtd(1, 1, true, true).valid?   # => true
+RangeExtd(1, 1, true, true).empty?   # => true
+RangeExtd(?a, ?b, true, true).to_a?  # => []
+RangeExtd(?a, ?b, true, true).null?  # => true  (empty? is same in this case)
+RangeExtd(?a, ?e, true, true).to_a?  # => ["b", "c", "d"]
+RangeExtd(?a, ?e, true, true).null?  # => false
+RangeExtd::NONE.is_none?             # => true
+RangeExtd(1...1, true) == RangeExtd::NONE # => true
+RangeExtd::ALL.is_all?               # => true
+(nil..nil).is_all?                   # => false
+(-Float::INFINITY..Float::INFINITY).is_all?    # => false
+(nil..nil).equiv_all?                # => true
+(-Float::INFINITY..Float::INFINITY).equiv_all? # => true
+(3...7).equiv?(3..6)    # => true
+(nil..nil).equiv?(RangeExtd::ALL)    # => true
+```
 
 組込Rangeに含まれる全てのメソッドが、(子クラスである){RangeExtd}で使用可能です。
 
@@ -1336,7 +1421,9 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 これらは、他のオブジェクトと同様に普通に使用可能です。たとえば、
 
-    (RangeExtd::Infinity::NEGATIVE.."k")
+```ruby
+(RangeExtd::Infinity::NEGATIVE.."k")
+```
 
 とはいえ、他には何もメソッドを持っていないため、 Range型のクラスの中以外での使用 はおそらく意味がないでしょう。
 
@@ -1358,9 +1445,12 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 
 
 として定義されています。このインスタンスは、たとえば `nil?` に真を返し、 また`nil` と同じ object-ID を `object_id`
-で返し、nil と等しい(+==+) です。これは、{RangeExtd::NONE} を構成するために使われます。
+で返し、nil と等しい(`==`) です。これは、{RangeExtd::NONE} を構成するために使われます。
 
 なお、Rubyの条件文では、このインスタンスは真(true)であり、偽(false) ではありません。
+
+また、{RangeExtd::NONE} を除き、{RangeExtd::Nowhere::NOWHERE} を含む Range
+は、"valid"では*ない*と判断されます(後述)。
 
 ### RangeExtd クラス
 
@@ -1385,7 +1475,7 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
 *   `valid?` 
 *   `empty?` 
 *   `null?` 
-*   `is_none?` 
+*   `is_none?`
 *   `is_all?` 
 *   `equiv?` 
 
@@ -1405,17 +1495,19 @@ Stringクラス(あるいはユーザー定義クラス?)ならば、
     この例外が3つあって、{RangeExtd::NONE}、(Ruby-2.7/2.6で導入された)Beginless/Endless Ranges
     で、 これらはすべて valid です。 たとえば、`(nil..nil)` は{RangeExtd} Ver.2.0+では valid
     です(参考までに、この例は Ruby 1.8 では例外を生じていました)。
-2.  {RangeExtd::NONE} と Beginless Rangeを除き +Range#begin+ のオブジェクトはメソッド +<=+
-    を持たなければなりません。ゆえに、+(true..)+のようなEndless Ranges (Ruby 2.6以上)はvalidでは*ありません*。
-    なお、"`true`" もメソッド +<=>+ を持っているため、+<=+ メソッドによる確認が不可欠です。
-3.  同様に、{RangeExtd::NONE} と Endless Rangeを除き +Range#end+ のオブジェクトはメソッド +<=+
-    を持たなければなりません。ゆえに、+(..true)+のようなBeginless Ranges (Ruby
+2.  {RangeExtd::NONE} と Beginless Rangeを除き `Range#begin` のオブジェクトはメソッド `<=`
+    を持たなければなりません。ゆえに、`(true..)`のようなEndless Ranges (Ruby 2.6以上)はvalidでは*ありません*。
+    なお、"`true`" もメソッド `<=>` を持っているため、`<=` メソッドによる確認が不可欠です。
+3.  同様に、{RangeExtd::NONE} と Endless Rangeを除き `Range#end` のオブジェクトはメソッド `<=`
+    を持たなければなりません。ゆえに、`(..true)`のようなBeginless Ranges (Ruby
     2.7以上)はvalidでは*ありません*。
 4.  始点は終点と等しい(`==`)か小さくなければなりません。すなわち、 `(begin <=> end)` は、-1 または 0 を返すこと。
 5.  もし始点と終点とが等しい時、すなわち `(begin <=> end) == 0`ならば、
     端を除外するかどうかのフラグは両端で一致していなければなりません。 すなわち、もし始点が除外ならば、終点も除外されていなくてはならず、逆も真です。
     その一例として、 `(1...1)` は、"valid" では「ありません」。なぜならば 組込レンジでは、始点を常に含むからです。
-    +RangeExtd(1...1, true)+ は validで、{RangeExtd::NONE}と等しい(`==`)です。
+    `RangeExtd(1...1, true)` は validで、{RangeExtd::NONE}と等しい(`==`)です。
+6.  {RangeExtd::NONE} 以外で{RangeExtd::Nowhere::NOWHERE} を含むRange
+    は、validでは*ありません*。
 
 
 さらなる詳細は {RangeExtd.valid?} と {Range#valid?} のマニュアルを 参照して下さい。
@@ -1453,14 +1545,16 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 メソッド `eql?` は、Ruby標準ではハッシュ値を比較して等価性を判断するため、 基本的にオブジェクトのすべてのパラメーターが一致する必要があります。
 一方、 `==` はもっと大雑把な比較を行います。以下が一例。
 
-    RaE(0...0, true) == RaE(?a...?a, true)  # => false
-    RaE(0...1, true) == RaE(5...6, true)    # => true
+```ruby
+RaE(0...0, true) == RaE(?a...?a, true)  # => false
+RaE(0...1, true) == RaE(5...6, true)    # => true
+```
 
 ## 既知のバグ
 
-*   {RangeExtd::Nowhere::NOWHERE} がをRuby組込み {Range}内で用いると、 +Range#minmax+
-    などは、その値を `nil` とは認識しません(本来は認識するべき)。 {RangeExtd::Nowhere::NOWHERE}
-    をnil以外の値として再定義した方が良いかも?
+*   {RangeExtd::Nowhere::NOWHERE} は、{RangeExtd} の文脈では使えません
+    (なぜならば{Range#valid?}が偽を返す)が、ユーザーは、Ruby組込み {Range}の枠組み内だけで用いることは以前可能です。
+    {RangeExtd::Nowhere::NOWHERE} をnil以外の値として再定義した方が良いかも?
 *   このライブラリ Version 2+ は Ruby 2.6 およびそれ以前のバージョンでは動作しません。
 *   このライブラリ Version 1は Ruby 1.8 およびそれ以前のバージョンでは動作しません。 Ruby 1.9.3
     ではおそらく大丈夫でしょうが、私は試したことがありません。
@@ -1472,6 +1566,8 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 
 *   {RangeExtd#hash} メソッドは、ある RangeExtdオブジェに対して常に唯一で排他的な
     数値を返すことが理論保証はされていません。ただし、現実的にそれが破られることは、まず ありません。
+*   `RangeExtd::NONE.inspect` と `RangeExtd::NONE.to_s` はいずれも "Null<...Null"
+    を返すのだが、Ruby `irb` では "nil...nil" と表示されてしまうために、 とても紛らわしい……。
 
 
 パッケージに含まれている通り、網羅的なテストが実行されています。
@@ -1484,13 +1580,18 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
     Stringクラスに対してはたとえば`"abcde"[my_nil..]`などで、
     同じようには動かない。Stringクラスは、`nil`について何か厳密なチェックを行っている
     のだろう。だから、仮にそうデザインし直しても、Ruby組込みクラスとの 相性という意味では、使い勝手がずっと向上するということにはなりそうもない。
+*   "`similar`" というようなメソッドを定義すれば有用かもしれない。たとえば、
+    `(-Float::INFINITY..Float::INFINITY)` と
+    `(-Float::INFINITYnil...Float::INFINITY)`
+    とは、無限大(無限小)を除外することが無意味であるから、数学的に完全に同一である。
+    実際、これらと無限大を含まないRange/Rangearyとの演算の結果には何も影響を 及ぼすことがない。
 
 
 ## 履歴メモ
 
 *   `((?a..?z) === "cc")` は、Ruby 2.6.x 以前は false を返していたが、2.7 以降は true を返す。
 *   `(Float::INFINITY..Float::INFINITY).size` は以前は 0を返して
-    いた(少なくともRuby-2.1)が、少なくともRuby-2.6以降(Ruby 3含む)では、例外 +FloatDomainError: NaN+
+    いた(少なくともRuby-2.1)が、少なくともRuby-2.6以降(Ruby 3含む)では、例外 `FloatDomainError: NaN`
     を発生する。どのバージョンで変化したのかは私は知らない。
 
 
@@ -1501,11 +1602,11 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
     の階層一つ上がった。Ruby Gems の慣用にそうため。
 
 *   Ruby-2.7で導入されたBeginless Rangeに対応。
-*   +RangeExtd::Infinity#succ+ は未定義になった。Floatに合わせた。
+*   `RangeExtd::Infinity#succ` は未定義になった。Floatに合わせた。
 *   `Object` と `Numeric` クラスの拡張はデフォルトではなく、オプション化
-*   +RangeExtd#eql?+
+*   `RangeExtd#eql?`
     [は、Ruby標準(ハッシュ値](#hash)比較)にそうように未定化。{RangeExtd::NONE}を特別扱いすることを廃止。
-*   +RangeExtd#min_by+ (`max_by` と `minmax_by`)のバグ修正。
+*   `RangeExtd#min_by` (`max_by` と `minmax_by`)のバグ修正。
 
 
 ### RangeExtd Ver.1.1
@@ -1513,26 +1614,29 @@ RangeExtd と別の RangeExtd または Rangeの比較 (`<=>`) においては�
 {RangeExtd} Ver.1.1 の時点で、the `RangeExtd::Infinity` クラスの インスタンスは
 `Float::INFINITY` とは比較できない。
 
-    RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
+```ruby
+RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
+```
 
 概念として、前者は後者よりもさらに一般化された概念であるから、*等しく* あるべきでない。詳しくは {RangeExtd::Infinity}
 マニュアル参照。 Ruby 2.6以上のEndless Range の振舞いは、以下のように一部奇妙に感じるところがある。
 
-    num1 = (5..Float::INFINITY)
-    num2 = (5..)
-    num1.end != num2.end  # => true
-    num1.size              # => Infinity
-    num2.size              # => Infinity
+```ruby
+num1 = (5..Float::INFINITY)
+num2 = (5..)
+num1.end != num2.end  # => true
+num1.size              # => Infinity
+num2.size              # => Infinity
 
-    str1 = (?a..)
-    str1.end == num2.end   # => true (because both are nil)
-    str1.size              # => nil
+str1 = (?a..)
+str1.end == num2.end   # => true (because both are nil)
+str1.size              # => nil
+```
 
 ### RangeExtd Ver.1.0
 
 **(注)** `RangeExtd::Infinity::POSITIVE` は、 2018年12月に公式リリースされたRuby 2.6で導入された
-[Endless
-Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
+[Endless Range](https://rubyreferences.github.io/rubychanges/2.6.html#endless-range-1)
 (終端のないRange)で実用上同一です!! 言葉を替えれば、公式Rubyがついに本 ライブラリの一部をサポートしました! ただし、公式Rubyには、
 `RangeExtd::Infinity::NEGATIVE` は依然ありません(始端のないRangeがない)。
 
@@ -1562,17 +1666,18 @@ Rangeの現在の挙 動には二度と戻りたくなくなることでしょ�
 
 お楽しみ下さい。
 
-## その他
-
 ## 著作権他情報
 
-著者
-:   Masa Sakano < info a_t wisebabel dot com >
-利用許諾条項
-:   MIT.
-保証
-:   一切無し。
-バージョン
-:   Semantic Versioning (2.0.0) http://semver.org/
+<dl>
+<dt>著者</dt>
+<dd>   Masa Sakano &lt; info a_t wisebabel dot com &gt;</dd>
+<dt>利用許諾条項</dt>
+<dd>   MIT.</dd>
+<dt>保証</dt>
+<dd>   一切無し。</dd>
+<dt>バージョン</dt>
+<dd>   Semantic Versioning (2.0.0) http://semver.org/</dd>
+</dl>
+
 
 

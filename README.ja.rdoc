@@ -88,7 +88,7 @@ defined in the class {RangeExtd::Infinity}
 * {RangeExtd::Infinity::NEGATIVE}
 * {RangeExtd::Infinity::POSITIVE}
 
-They are basically the objects that *generalise* <tt>Float::INFINITY</tt> to
+They are basically the objects that *generalize* <tt>Float::INFINITY</tt> to
 any Comparable object.  For example,
 
    ("a"..RangeExtd::Infinity::POSITIVE).each
@@ -99,7 +99,7 @@ In this case it work in an identical way to (a Ruby-2.6 form of)
 
    ("a"..).each
 
-=== News: Library locations and else
+=== News: Library locations and support of beginless Ranges
 
 **IMPORTANT**: The paths for the libraries are moved up by one
 directory in {RangeExtd} Ver.2 from Ver.1 in order that their
@@ -139,8 +139,8 @@ change from users' point of view. The begin and end value for {RangeExtd::NONE},
 Ver.1 and earlier, the use of {RangeExtd::Nowhere::NOWHERE} in
 {RangeExtd::NONE} in Ver.2 should not demand any changes in the existing code
 that use {RangeExtd::NONE}. The recommended way to check whether an
-object is {RangeExtd::NONE} or not is use of {RangeExtd#is_none?} (as
-it always has been). Or, in most practical cases, {Range#null?} is
+object is {RangeExtd::NONE} or not with use of {RangeExtd#is_none?} (as
+it always has been) (do not be confused with +Enumerable#none?+). Or, in most practical cases, {Range#null?} is
 likely to be what a user wants (n.b., a potential caveat is
 +(true..true).null?+ returns +false+; see subsection "RangeExtd Class"
 in "Description" in this doc for detail).
@@ -476,7 +476,7 @@ Here are some simple examples.
    (RangeExtd::Infinity::NEGATIVE..RangeExtd::Infinity::POSITIVE) \
     == RangeExtd::ALL  # => true
 
-+RangeExtd+ provides three forms for initialisation (hint: the first
++RangeExtd+ provides three forms for initialization (hint: the first
 form is probably the handiest with least typing and is the easiest to remember):
 
    RangeExtd(range, [exclude_begin=false, [exclude_end=false]])
@@ -542,7 +542,7 @@ Note that whereas the changes in {Range} could be in principle separable
 from {RangeExtd}, if no one would likely want to use them separately, those
 in {NilClass} are unavoidable.  Without them, {RangeExtd::NONE} could
 not be defined, for +ArgumentError+ (bad value for range) would be
-raised in the initialisation due to the way Ruby built-in Range is
+raised in the initialization due to the way Ruby built-in Range is
 implemented.
 
 See {discussion at Stackoverflow}[https://stackoverflow.com/a/14449380/3577922].
@@ -554,7 +554,7 @@ Class {RangeExtd::Infinity} has only two constant instances.
 * RangeExtd::Infinity::NEGATIVE
 * RangeExtd::Infinity::POSITIVE
 
-They are the objects that generalise the concept of
+They are the objects that generalize the concept of
 <tt>Float::INFINITY</tt> 
 to any Comparable objects.  The methods <tt><=></tt> are defined.
 
@@ -588,6 +588,9 @@ object-ID for +object_id+ as +nil+ and equal (+==+) to nil.  It is used to const
 
 It is not, however, recognised as the false value in conditional statements.
 
+Also, a Range containing {RangeExtd::Nowhere::NOWHERE} is *not* "valid"
+as a Range (see below), except for {RangeExtd::NONE}.
+
 === RangeExtd Class
 
 {RangeExtd} objects are immutable, the same as {Range}.
@@ -615,7 +618,7 @@ See the document of each method for detail (some are defined only in
 * <tt>valid?</tt> 
 * <tt>empty?</tt> 
 * <tt>null?</tt> 
-* <tt>is_none?</tt> 
+* <tt>is_none?</tt>
 * <tt>is_all?</tt> 
 * <tt>equiv?</tt> 
 
@@ -652,6 +655,8 @@ What is valid (<tt>#valid?</tt> => true) as a range is defined as follows.
    because any built-in Range object has the exclude status
    of +false+ (namely, inclusive) for +begin+, whereas
    +RangeExtd(1...1, true)+ is valid and equal (<tt>==</tt>) to {RangeExtd::NONE}.
+6. Range containing {RangeExtd::Nowhere::NOWHERE} except for
+   {RangeExtd::NONE} is *not* valid.
 
 For more detail and examples, see the documents of
 {RangeExtd.valid?} and {Range#valid?} 
@@ -704,8 +709,9 @@ objects are broadly the same, returns +true+.
 
 == Known bugs
 
-* When {RangeExtd::Nowhere::NOWHERE} is used in a standard {Range},
-  +Range#minmax+ etc consider it as +nil+, which is conceptually not right.
+* Although {RangeExtd::Nowhere::NOWHERE} cannot be used in the context of 
+  {RangeExtd} (because it is not {Range#valid?}), users could still
+  use it within just the built-in Range framework.
   Perhaps, {RangeExtd::Nowhere::NOWHERE} should be redefined as a
   non-nil object?
 * This library of Version 2+ does not work in Ruby 2.6 or earlier.
@@ -720,6 +726,9 @@ objects are broadly the same, returns +true+.
 * {RangeExtd#hash} method does not theoretically guarantee to return a unique
   number for a {RangeExtd} object, though to encounter a hash number that is
   used elsewhere is extremely unlikely to happen in reality.
+* +RangeExtd::NONE.inspect+ and +RangeExtd::NONE.to_s+ return "Null<...Null", but it is
+  displayed as "nil...nil" in Ruby +irb+ and hence it is not easily
+  recognizable in +irb+.
 
 Extensive tests have been performed, as included in the package.
 
@@ -732,6 +741,11 @@ Extensive tests have been performed, as included in the package.
   a pretty rigorous check about +nil+.  So, I guess the practical
   applicability would not be improved so much, as far as the built-in
   Ruby classes are concerned.
+* A method like "+similar+" may be useful. For example,
+  +(-Float::INFINITY..Float::INFINITY)+ and +(-Float::INFINITYnil...Float::INFINITY)+
+  have no mathematical difference, because excluding an infinity is
+  meaningless. Indeed it makes no difference in the results of operations with
+  non-infinite Range/Rangeary.
 
 == History memo
 
@@ -758,7 +772,7 @@ comparable with +Float::INFINITY+; for example,
 
   RangeExtd::Infinity::POSITIVE != Float::INFINITY  # => true
 
-Conceptionally, the former is a generalised object of the latter and
+Conceptionally, the former is a generalized object of the latter and
 hence they should not be *equal*.  See the reference of
 {RangeExtd::Infinity} for detail.  Note, the behaviour of Endless Range from Ruby 2.6
 may feel a little odd, as follows:
@@ -817,8 +831,6 @@ current behaviour of Range!
 
 Enjoy.
 
-
-== Miscellaneous
 
 == Copyright etc
 
@@ -967,7 +979,8 @@ Range +(nil..nil)+ は、Ruby-2.6 およびそれ以前ではそもそも許さ�
 Ver.2で{RangeExtd::Nowhere::NOWHERE} が{RangeExtd::NONE}
 に使われるようになったと言っても、今まで動いていたコードには何の変更も必要ないはずです。
 オブジェクトが{RangeExtd::NONE} かどうかをチェックする推奨方法は、
-今までもずっとそうだったように、{RangeExtd#is_none?} です。実用的には、
+今までもずっとそうだったように、{RangeExtd#is_none?} です
+(+Enumerable#none?+とは異なるのでご注意)。実用的には、
 {Range#null?} がユーザーが希望する挙動であることが大半でしょう
 (注: +(true..true).null?+ は偽(+false+)を返すことに注意。
 本マニュアルの「詳説」章の「RangeExtd Class」を参照)。
@@ -1408,6 +1421,8 @@ Ruby組込みクラスの +Object+ と +Numeric+ (+Float+ と +Integer+を含む
 なお、Rubyの条件文では、このインスタンスは真(true)であり、偽(false)
 ではありません。
 
+また、{RangeExtd::NONE} を除き、{RangeExtd::Nowhere::NOWHERE} を含む
+Range は、"valid"では*ない*と判断されます(後述)。
 
 === RangeExtd クラス
 
@@ -1433,7 +1448,7 @@ Ruby組込みクラスの +Object+ と +Numeric+ (+Float+ と +Integer+を含む
 * <tt>valid?</tt> 
 * <tt>empty?</tt> 
 * <tt>null?</tt> 
-* <tt>is_none?</tt> 
+* <tt>is_none?</tt>
 * <tt>is_all?</tt> 
 * <tt>equiv?</tt> 
 
@@ -1468,6 +1483,8 @@ Ruby組込みクラスの +Object+ と +Numeric+ (+Float+ と +Integer+を含む
    その一例として、 <tt>(1...1)</tt> は、"valid" では「ありません」。なぜならば
    組込レンジでは、始点を常に含むからです。
    +RangeExtd(1...1, true)+ は validで、{RangeExtd::NONE}と等しい(<tt>==</tt>)です。
+6. {RangeExtd::NONE} 以外で{RangeExtd::Nowhere::NOWHERE} を含むRange
+   は、validでは*ありません*。
 
 さらなる詳細は {RangeExtd.valid?} と {Range#valid?} のマニュアルを
 参照して下さい。
@@ -1516,8 +1533,9 @@ RangeExtd と別の RangeExtd または Rangeの比較 (<tt><=></tt>) におい�
 
 == 既知のバグ
 
-* {RangeExtd::Nowhere::NOWHERE} がをRuby組込み {Range}内で用いると、
-  +Range#minmax+ などは、その値を +nil+ とは認識しません(本来は認識するべき)。
+* {RangeExtd::Nowhere::NOWHERE} は、{RangeExtd} の文脈では使えません
+  (なぜならば{Range#valid?}が偽を返す)が、ユーザーは、Ruby組込み
+  {Range}の枠組み内だけで用いることは以前可能です。
   {RangeExtd::Nowhere::NOWHERE} をnil以外の値として再定義した方が良いかも?
 * このライブラリ Version 2+ は Ruby 2.6 およびそれ以前のバージョンでは動作しません。
 * このライブラリ Version 1は Ruby 1.8 およびそれ以前のバージョンでは動作しません。
@@ -1530,6 +1548,9 @@ RangeExtd と別の RangeExtd または Rangeの比較 (<tt><=></tt>) におい�
 * {RangeExtd#hash} メソッドは、ある RangeExtdオブジェに対して常に唯一で排他的な
   数値を返すことが理論保証はされていません。ただし、現実的にそれが破られることは、まず
   ありません。
+* +RangeExtd::NONE.inspect+ と +RangeExtd::NONE.to_s+ はいずれも "Null<...Null"
+  を返すのだが、Ruby +irb+ では "nil...nil" と表示されてしまうために、
+  とても紛らわしい……。
 
 パッケージに含まれている通り、網羅的なテストが実行されています。
 
@@ -1543,6 +1564,11 @@ RangeExtd と別の RangeExtd または Rangeの比較 (<tt><=></tt>) におい�
   同じようには動かない。Stringクラスは、+nil+について何か厳密なチェックを行っている
   のだろう。だから、仮にそうデザインし直しても、Ruby組込みクラスとの
   相性という意味では、使い勝手がずっと向上するということにはなりそうもない。
+* "+similar+" というようなメソッドを定義すれば有用かもしれない。たとえば、
+  +(-Float::INFINITY..Float::INFINITY)+ と +(-Float::INFINITYnil...Float::INFINITY)+
+  とは、無限大(無限小)を除外することが無意味であるから、数学的に完全に同一である。
+  実際、これらと無限大を含まないRange/Rangearyとの演算の結果には何も影響を
+  及ぼすことがない。
 
 
 == 履歴メモ
@@ -1617,8 +1643,6 @@ Rubyプログラマーがこの概念に親しむことになりました。
 
 お楽しみ下さい。
 
-
-== その他
 
 == 著作権他情報
 

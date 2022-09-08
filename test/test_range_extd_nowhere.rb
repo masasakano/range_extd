@@ -11,9 +11,11 @@ arlibrelbase.each do |elibbase|
   require_relative elibbase
 end
 
+print "NOTE: Running: "; p File.basename(__FILE__)
 print "NOTE: Library relative paths: "; p arlibrelbase
-print "NOTE: Library full paths:\n"
-arlibbase.each do |elibbase|
+arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}+%w(range_extd)
+puts  "NOTE: Library full paths for #{arlibbase4full.inspect}: "
+arlibbase4full.each do |elibbase|
   ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
   print elibbase+": " if ar.empty?; p ar
 end
@@ -51,6 +53,7 @@ class TestUnitNowhere < MiniTest::Test
 
     assert( nowhere )  # Unfortunately, there is no way in Ruby to make the object behave like false/nil in the conditional statement: see <https://stackoverflow.com/a/14449380/3577922>
     assert( nowhere.nil? )
+    refute RangeExtd.valid?(RangeExtd::Nowhere::NOWHERE..nil), 'NOWHERE cannot reside in other than RangeExtd::NONE'
   end	# def test_nowhere
 
   # 'nil_class.rb' is always required, and so these should hold.
